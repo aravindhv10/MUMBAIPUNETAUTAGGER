@@ -17,7 +17,7 @@ tar -xf './fastjet-3.3.0.tar.gz'\\
 cd fastjet-3.3.0/\\
 ./configure\\
 make -j4\\
-sudo make install
+sudo make install\\
 }
 
 \subsection{Installing {\tt Pythia8}:}
@@ -27,7 +27,7 @@ tar -xf 'pythia8230.tgz'\\
 cd 'pythia8230/'\\
 ./configure '--with-hepmc2'\\
 make -j4\\
-sudo make install
+sudo make install\\
 }
 
 \subsection{Installing {\tt Root-6}}
@@ -39,11 +39,11 @@ If this method does not produce a good executable then you should compile root f
 
 \subsection{Installing {\tt Delphes}}
 {\tt
-	wget -c '\url{http://cp3.irmp.ucl.ac.be/downloads/Delphes-3.4.1.tar.gz}'
+	wget -c '\url{http://cp3.irmp.ucl.ac.be/downloads/Delphes-3.4.1.tar.gz}'\\
 	tar -xf './Delphes-3.4.1.tar.gz'\\
 	cd './Delphes-3.4.1/'\\
 	'./configure'\\
-	make -j4	
+	make -j4\\	
 }\\
 Delphes does not have any "make install" but all the executables you need are produced in the source directory and can be copied anywhere required.
 An important step required is to manually copy "libDelphes.so" to '/usr/local/lib' or any other library search path and also copy all the root dictionaries
