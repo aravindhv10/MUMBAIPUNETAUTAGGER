@@ -1,0 +1,40 @@
+\section{Installing Standard Programs:}
+
+\subsection{Installing {\tt HepMC}}
+{\tt
+wget -c '\url{http://lcgapp.cern.ch/project/simu/HepMC/download/HepMC-2.06.09.tar.gz}'\\
+tar -xf 'HepMC-2.06.09.tar.gz'\\
+cd 'HepMC-2.06.09/'\\
+'./configure' '--with-momentum=GEV' '--with-length=MM'\\
+make -j4\\
+sudo make install\\
+}
+
+\subsection{Installing {\tt Pythia8}:}
+{\tt
+wget -c '\url{http://home.thep.lu.se/~torbjorn/pythia8/pythia8230.tgz}'\\
+tar -xf 'pythia8230.tgz'\\
+cd 'pythia8230/'\\
+./configure '--with-hepmc2'\\
+make -j4\\
+sudo make install
+}
+
+\subsection{Installing {\tt Root-6}}
+Download the binary distribution from \url{https://root.cern.ch/content/release-61206} for the appropriate platform and extract.
+Once you have extracted, you will get a directory "root" wherever you extracted, cd to this directory and run
+{\tt source root/bin/thisroot.sh} (assuming you are using bash shell, otherwise modify accordingly). If you are installing {\tt root} to a non standard directory, it is preferable to put "source root/bin/thisroot.sh" into your {\tt "~/.bashrc"} (or some other initialization file for your shell).
+
+If this method does not produce a good executable then you should compile root from source, please follow the instructions from the official (\url{https://root.cern.ch/building-root}) site (please do not use non-standard scripts / commands from random forums).
+
+\subsection{Installing {\tt Delphes}}
+{\tt
+	wget -c '\url{http://cp3.irmp.ucl.ac.be/downloads/Delphes-3.4.1.tar.gz}'
+	tar -xf './Delphes-3.4.1.tar.gz'\\
+	cd './Delphes-3.4.1/'\\
+	'./configure'\\
+	make -j4	
+}\\
+Delphes does not have any "make install" but all the executables you need are produced in the source directory and can be copied anywhere required.
+An important step required is to manually copy "libDelphes.so" to '/usr/local/lib' or any other library search path and also copy all the root dictionaries
+({\tt 'ClassesDict\_rdict.pcm', 'ExRootAnalysisDict\_rdict.pcm', 'FastJetDict\_rdict.pcm',\\ 'ModulesDict\_rdict.pcm'}) to the root dictionary search path and copy the header files ({\tt 'classes', 'external'} folders) to the default headers search paths ({\tt '/usr/local/include'}).
