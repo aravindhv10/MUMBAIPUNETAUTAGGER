@@ -1,0 +1,3 @@
+#!/bin/bash
+'g++' -L/home/everything/HEPSim/pythia8230.dir/install/lib -lpythia8 -L./ -lboost_iostreams -L./ -lz -I/home/everything/HEPSim/pythia8230.dir/install/include -L/home/everything/HEPSim/pythia8230.dir/install/lib -lpythia8 -L./ -lboost_iostreams -L./ -lz $(fastjet-config --rpath --cxxflags --libs) "${1}"
+exit '0'

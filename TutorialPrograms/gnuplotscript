@@ -1,0 +1,5 @@
+#!/bin/bash
+cd "$('dirname' '--' "${0}")"
+gsl-histogram -u 50 175 25 < mass  > hist
+'sed' 's@^@./editer @g' ./hist | bash > ./out
+exit '0'
