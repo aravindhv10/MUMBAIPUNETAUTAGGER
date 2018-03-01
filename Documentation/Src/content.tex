@@ -10,6 +10,16 @@ make -j4\\
 sudo make install\\
 }
 
+\subsection{Installing {\tt FastJet}:}
+{\tt
+wget -c '\url{http://www.fastjet.fr/repo/fastjet-3.3.0.tar.gz}'\\
+tar -xf './fastjet-3.3.0.tar.gz'\\
+cd fastjet-3.3.0/\\
+./configure\\
+make -j4\\
+sudo make install
+}
+
 \subsection{Installing {\tt Pythia8}:}
 {\tt
 wget -c '\url{http://home.thep.lu.se/~torbjorn/pythia8/pythia8230.tgz}'\\
