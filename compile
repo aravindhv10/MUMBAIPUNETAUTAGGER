@@ -1,5 +1,5 @@
 #!/bin/bash
 HEPMCLIB='/usr/local/lib/libHepMC.a'
 OUT="$('echo' "${1}"|'sed' 's@\.cc$@\.exe@g')"
-'g++' '-fopenmp' '-Ofast' '-mtune=native' '-march=native' $('root-config' '--cflags' '--auxcflags' '--ldflags' '--libs' '--glibs' '--evelibs') $('pythia8-config' '--cxxflags' '--cflags' '--ldflags' '--libs'|'sed' 's@-ld@@g') $('fastjet-config' '--rpath' '--cxxflags' '--libs') "${1}" "${HEPMCLIB}" '-o' "${OUT}"
+'g++' '-fopenmp' '-Ofast' '-mtune=native' '-march=native' '-lDelphes' $('root-config' '--cflags' '--auxcflags' '--ldflags' '--libs' '--glibs' '--evelibs') $('pythia8-config' '--cxxflags' '--cflags' '--ldflags' '--libs'|'sed' 's@-ld@@g') $('fastjet-config' '--rpath' '--cxxflags' '--libs') "${1}" "${HEPMCLIB}" '-o' "${OUT}"
 exit '0'

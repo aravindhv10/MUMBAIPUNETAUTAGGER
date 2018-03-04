@@ -1,6 +1,6 @@
 ﻿#ifndef NewHEPHeaders2_HH
 #define NewHEPHeaders2_HH
-#include "CPPFileIO.hh"
+#include "CPPFileIO2.hh"
 #include "Pythia8/Pythia.h"
 #include "Pythia8Plugins/HepMC2.h"
 #include <sstream>
@@ -1182,138 +1182,107 @@ namespace NewHEPHeaders {
             {QuickConstruct();FromPythia(event);}
             ~EventData() {clear_jet_cluster();}
         };
-
     } typedef MainEventData::EventData EventData ;
     namespace DELPHES_DETDATA {
         const size_t BTAG = 1;
         const size_t TAUTAG = 2;
         const size_t NOTHING = 0;
         class DetVector:public vector4 {
-          private:
-          public:
-            int charge;
-            float H_fraction;
-            float E_fraction;
-            float M_fraction;
-              DetVector () {
-                charge = 0;
-                H_fraction = 0;
-                E_fraction = 0;
-                M_fraction = 0;
-            } ~DetVector () {
-        }};
-        typedef std::vector < DetVector > DetVectors;
-
+        private:
+        public:
+            int   charge     ;
+            float H_fraction ;
+            float E_fraction ;
+            float M_fraction ;
+            DetVector () {
+                charge     = 0 ;
+                H_fraction = 0 ;
+                E_fraction = 0 ;
+                M_fraction = 0 ;
+            }
+            ~DetVector () {}
+        }; typedef std::vector < DetVector > DetVectors;
         class JetContainer:public vector4 {
-          private:
-          public:
-            double weight;
-              std::vector < int >constituents;
-            size_t TAG;
-            DetVectors *vectors;
-              fastjet::PseudoJet * injet;
-            bool tau_tag () {
-                if ((TAG & TAUTAG) == TAUTAG) {
-                    return true;
+        private:
+            inline DetVector & CstGet     (size_t i) {return vectors[0][constituents[i]];}
+            inline void        initialize (DetVectors & _vectors, fastjet::PseudoJet & _injet) {
+                weight=1.0; TAG=NOTHING;
+                /* Get some values: */  {
+                    injet      = & _injet       ;
+                    vectors    = & _vectors     ;
+                    this[0][0] =   _injet.px () ;
+                    this[0][1] =   _injet.py () ;
+                    this[0][2] =   _injet.pz () ;
+                    this[0][3] =   _injet.e  () ;
                 }
-                return false;
-            }
-            bool bot_tag () {
-                if ((TAG & BTAG) == BTAG) {
-                    return true;
-                }
-                return false;
-            }
-            JetContainer (DetVectors & _vectors, fastjet::PseudoJet & _injet) {
-                weight = 1.0;
-                TAG = NOTHING;
-/* Get some values: */  {
-                    injet = &_injet;
-                    vectors = &_vectors;
-                    this[0][0] = _injet.px ();
-                    this[0][1] = _injet.py ();
-                    this[0][2] = _injet.pz ();
-                    this[0][3] = _injet.e ();
-                }
-/* Get the constituents: */  {
+                /* Get the constituents: */  {
                     constituents.clear ();
-                    std::vector < fastjet::PseudoJet > _constituents = _injet.constituents ();
+                    std::vector <fastjet::PseudoJet> _constituents = _injet.constituents () ;
                     for (size_t j = 0; j < _constituents.size (); j++) {
-                        constituents.push_back (_constituents[j].user_index ());
+                        constituents.push_back (_constituents[j].user_index());
                     }
                 }
             }
-            ~JetContainer () {
-            }
-            inline DetVector & CstGet (size_t i) {
-                return vectors[0][constituents[i]];
-            }
-            inline DetVector & operator  () (size_t i) {
-                return CstGet (i);
-            }
-            inline size_t operator  () () {
-                return constituents.size ();
-            }
-            int count_tracks () {
+        public:
+            double                   weight       ;
+            size_t                   TAG          ;
+            std::vector        <int> constituents ;
+            DetVectors         *     vectors      ;
+            fastjet::PseudoJet *     injet        ;
+            int    count_tracks   () {
                 int ret = 0;
-
+                for (size_t i = 0; i < constituents.size (); i++) if (CstGet(i).charge != 0) {ret++;}
+                return ret;
+            }
+            int    count_neutrals () {
+                int ret = 0;
+                for (size_t i = 0; i < constituents.size (); i++) if (CstGet (i).charge == 0) {ret++;}
+                return ret;
+            }
+            int    count_hadrons  () {
+                int ret = 0;
                 for (size_t i = 0; i < constituents.size (); i++) {
-                    if (CstGet (i).charge != 0) {
-                        ret++;
-                    }
+                    if (
+                        (CstGet (i).H_fraction > CstGet (i).M_fraction) &&
+                        (CstGet (i).H_fraction > CstGet (i).E_fraction)
+                    ) {ret++;}
                 }
                 return ret;
             }
-            int count_neutrals () {
-                int ret = 0;
-
-                for (size_t i = 0; i < constituents.size (); i++) {
-                    if (CstGet (i).charge == 0) {
-                        ret++;
-                    }
-                }
-                return ret;
-            }
-            int count_hadrons () {
-                int ret = 0;
-
-                for (size_t i = 0; i < constituents.size (); i++) {
-                    if ((CstGet (i).H_fraction > CstGet (i).M_fraction) && (CstGet (i).H_fraction > CstGet (i).E_fraction)
-                        ) {
-                        ret++;
-                    }
-                }
-                return ret;
-            }
-            double Lambda () {
+            double Lambda         () {
                 std::vector < fastjet::PseudoJet > tmp_const = injet->constituents ();
                 fastjet::JetDefinition jet_def (fastjet::antikt_algorithm, 2.0 * 2.0 / pt ());
                 fastjet::ClusterSequence clust_seq (tmp_const, jet_def);
                 std::vector < fastjet::PseudoJet > inclusive_jets = sorted_by_pt (clust_seq.inclusive_jets (10.0));
                 double ret = 0;
-
                 if (inclusive_jets.size () > 0) {
                     ret = log (1.0 - (inclusive_jets[0].pt () / injet->pt ()));
                 }
                 return ret;
             }
-            double project () {
+            double project        () {
                 NewHEPHeaders::vector3 tmp = xyz.dir ();
                 double ret = 0;
-
-                for (size_t i = 0; i < constituents.size (); i++) {
-                    ret = ret + (CstGet (i).xyz.dir () * tmp);
-                }
+                for (size_t i = 0; i < constituents.size (); i++) {ret=ret+(CstGet(i).xyz.dir()*tmp);}
                 ret = ret / constituents.size ();
-                //ret = ret * 2.0 * 2.0 / pt ();
                 return ret;
             }
-        };
-        typedef std::vector < JetContainer > JetContainers;
-
+            bool   tau_tag        () {
+                if ((TAG&TAUTAG)==TAUTAG) {return true;}
+                return false;
+            }
+            bool   bot_tag        () {
+                if ((TAG&BTAG)==BTAG) {return true;}
+                return false;
+            }
+            inline DetVector & operator  () (size_t i) {return CstGet (i);}
+            inline size_t      operator  () ()         {return constituents.size ();}
+            JetContainer (DetVectors & _vectors, fastjet::PseudoJet & _injet) {initialize (_vectors,_injet);}
+            ~JetContainer(){}
+        }; typedef std::vector < JetContainer > JetContainers;
         class GenPartContainer {
-          private:
-          public:
+        private:
+        public:
             pythia_nodes store;
             vector4s taus;
             vector4s bots;
@@ -1345,12 +1314,8 @@ namespace NewHEPHeaders {
                     int PID = store[idx].id ();
                     size_t d1 = store[idx].daughter1 ();
                     size_t d2 = store[idx].daughter2 ();
-
-                    if ((d1 > idx) && (store[d1].id () == PID)) {
-                        return recurse (d1);
-                    } else if ((d2 > idx) && (store[d2].id () == PID)) {
-                        return recurse (d2);
-                    }
+                    if      ((d1>idx)&&(store[d1].id()==PID)) {return recurse (d1);}
+                    else if ((d2>idx)&&(store[d2].id()==PID)) {return recurse (d2);}
                 }
                 return idx;
             }
@@ -1374,31 +1339,31 @@ namespace NewHEPHeaders {
                                 } else if (MPID == pid) {
                                     ret = i;
                                 }
-                        } else {
-/* Check the first daughter: */  {
-                                size_t i = d1;
-                                long PPID = (int) store[i].id ();
-                                long MPID = CPPFileIO::mymod (PPID);
+                            } else {
+                                /* Check the first daughter: */  {
+                                    size_t i = d1;
+                                    long PPID = (int) store[i].id ();
+                                    long MPID = CPPFileIO::mymod (PPID);
 
-                                if (PPID == pid) {
-                                    ret = i;
-                                } else if (MPID == pid) {
-                                    ret = i;
+                                    if (PPID == pid) {
+                                        ret = i;
+                                    } else if (MPID == pid) {
+                                        ret = i;
+                                    }
+                                }
+                                /* Check the second daughter: */  {
+                                    size_t i = d2;
+                                    long PPID = (int) store[i].id ();
+                                    long MPID = CPPFileIO::mymod (PPID);
+
+                                    if (PPID == pid) {
+                                        ret = i;
+                                        i = d2 + 1;
+                                    } else if (MPID == pid) {
+                                        ret = i;
+                                    }
                                 }
                             }
-/* Check the second daughter: */  {
-                                size_t i = d2;
-                                long PPID = (int) store[i].id ();
-                                long MPID = CPPFileIO::mymod (PPID);
-
-                                if (PPID == pid) {
-                                    ret = i;
-                                    i = d2 + 1;
-                                } else if (MPID == pid) {
-                                    ret = i;
-                                }
-                            }
-                        }
                     }
                 }
                 return ret;
@@ -1406,14 +1371,12 @@ namespace NewHEPHeaders {
             void GetTaus () {
                 taus.clear ();
                 std::vector < size_t > tau_indices;
-/* Get genuine taus: */  {
+                /* Get genuine taus: */  {
                     size_t Higgs_Index = 0;
-
                     for (size_t i = 0; (i < store.size ()) && (Higgs_Index == 0); i++) {
                         long ppid = store[i].id ();
-
                         if ((ppid == NewHEPHeaders::PID::H0)||(ppid == NewHEPHeaders::PID::Z)) {
-                            Higgs_Index = i;
+                            Higgs_Index=i;
                         }
                     }
                     if (Higgs_Index > 0) {
@@ -1429,10 +1392,7 @@ namespace NewHEPHeaders {
                 }
                 for (size_t i = 0; i < tau_indices.size (); i++) {
                     vector4 tmptauvect = store[tau_indices[i]].getvec();
-
-                    if (CPPFileIO::mymod (tmptauvect.eta ()) < 4.0) {
-                        taus.push_back (tmptauvect);
-                    }
+                    if (CPPFileIO::mymod (tmptauvect.eta ()) < 4.0) {taus.push_back(tmptauvect);}
                 }
             }
             void GetBots () {
@@ -1444,7 +1404,7 @@ namespace NewHEPHeaders {
 
                         tau_indices.push_back (tmpindex);
                     }
-                CPPFileIO::deduplicate (tau_indices);
+                    CPPFileIO::deduplicate (tau_indices);
                 for (size_t i = 0; i < tau_indices.size (); i++) {
                     bots.push_back (store[tau_indices[i]].getvec());
                 }
@@ -1467,24 +1427,22 @@ namespace NewHEPHeaders {
                 GetTaus ();
                 GetBots ();
             }
-            GenPartContainer () {
-            }
-            ~GenPartContainer () {
-            }
+            GenPartContainer  () {}
+            ~GenPartContainer () {}
         };
         class DelphesContainer {
-          private:
-          public:
-            DetVectors AllParticles;
-            vector4s Muons, Electrons;
-            JetContainers jets;
-            DetVectors ToJets;
-            float sigma, weight;
-              fastjet::JetDefinition jet_def;
-              fastjet::ClusterSequence * clust_seq;
-              std::vector < fastjet::PseudoJet > jetvectors;
-              std::vector < fastjet::PseudoJet > inclusive_jets;
-            double calciso (size_t index, double DeltaR) {
+        private:
+        public:
+            DetVectors    AllParticles         ;
+            DetVectors    ToJets               ;
+            JetContainers jets                 ;
+            vector4s      Electrons    , Muons ;
+            float         weight       , sigma ;
+            fastjet::JetDefinition     jet_def   ;
+            fastjet::ClusterSequence * clust_seq ;
+            std::vector <fastjet::PseudoJet> jetvectors;
+            std::vector <fastjet::PseudoJet> inclusive_jets;
+            double calciso       (size_t index, double DeltaR) {
                 double DeltaR2 = DeltaR * DeltaR;
                 double ret = 0;
                 if (index < AllParticles.size ()) {
@@ -1501,7 +1459,7 @@ namespace NewHEPHeaders {
                 }
                 return ret;
             }
-            void DecideLeptJet () {
+            void   DecideLeptJet () {
                 for (size_t i = 0; i < AllParticles.size (); i++) {
                     if ((AllParticles[i].pt () > 15)
                         && (AllParticles[i].charge != 0)) {
@@ -1518,12 +1476,12 @@ namespace NewHEPHeaders {
                                 ToJets.push_back (AllParticles[i]);
                             }
                         }
-                    } else {
-                        ToJets.push_back (AllParticles[i]);
-                    }
+                        } else {
+                            ToJets.push_back (AllParticles[i]);
+                        }
                 }
             }
-            void ClusterJets () {
+            void   ClusterJets   () {
                 jetvectors.clear (); /* Get the vectors: */  {
                     for (size_t i = 0; i < ToJets.size (); i++) {
                         fastjet::PseudoJet tmp (ToJets[i][0], ToJets[i][1], ToJets[i][2], ToJets[i][3]);
@@ -1536,38 +1494,24 @@ namespace NewHEPHeaders {
                     inclusive_jets = sorted_by_pt (clust_seq->inclusive_jets (20.0));
                     for (size_t i = 0; i < inclusive_jets.size (); i++) {
                         JetContainer tmp (ToJets, inclusive_jets[i]);
-
                         tmp.weight = weight;
                         jets.push_back (tmp);
                     }
-                }
-            }
-          DelphesContainer ():jet_def (fastjet::antikt_algorithm, 0.4) {
-                AllParticles.clear ();
-                Electrons.clear ();
-                Muons.clear ();
-                inclusive_jets.clear ();
-                clust_seq = (fastjet::ClusterSequence *) (&junk_address);
-            }
-            ~DelphesContainer () {
-                if (clust_seq != ((fastjet::ClusterSequence *) (&junk_address))) {
-                    delete clust_seq;
                 }
             }
             template < typename T > void ReadFromDelphes (T & indata) {
                 weight = indata.Event_Weight[0];
                 for (size_t i = 0; i < indata.EFlowTrack_; i++) {
                     DetVector tmpvector; /* Assign the vectors: */  {
-/* Setting momentum components: */  {
+                        /* Setting momentum components: */  {
                             TLorentzVector tmp;
-
                             tmp.SetPtEtaPhiM (indata.EFlowTrack_PT[i], indata.EFlowTrack_Eta[i], indata.EFlowTrack_Phi[i], 0);
-                            tmpvector[0] = tmp.Px ();
-                            tmpvector[1] = tmp.Py ();
-                            tmpvector[2] = tmp.Pz ();
-                            tmpvector[3] = tmp.E ();
+                            tmpvector[0] = tmp.Px () ;
+                            tmpvector[1] = tmp.Py () ;
+                            tmpvector[2] = tmp.Pz () ;
+                            tmpvector[3] = tmp.E  () ;
                         }
-/* Set charge and type: */  {
+                        /* Set charge and type: */  {
                             tmpvector.charge = indata.EFlowTrack_Charge[i];
                             if (CPPFileIO::mymod (indata.EFlowTrack_PID[i]) == PID::MUON) {
                                 tmpvector.M_fraction = 1.0;
@@ -1582,16 +1526,15 @@ namespace NewHEPHeaders {
                 }
                 for (size_t i = 0; i < indata.EFlowPhoton_; i++) {
                     DetVector tmpvector; /* Assign the vectors: */  {
-/* Setting momentum components: */  {
+                        /* Setting momentum components: */  {
                             TLorentzVector tmp;
-
                             tmp.SetPtEtaPhiM (indata.EFlowPhoton_ET[i], indata.EFlowPhoton_Eta[i], indata.EFlowPhoton_Phi[i], 0);
                             tmpvector[0] = tmp.Px ();
                             tmpvector[1] = tmp.Py ();
                             tmpvector[2] = tmp.Pz ();
-                            tmpvector[3] = tmp.E ();
+                            tmpvector[3] = tmp.E  ();
                         }
-/* Set charge and type: */  {
+                        /* Set charge and type: */  {
                             tmpvector.charge = 0;
                             tmpvector.E_fraction = indata.EFlowPhoton_Eem[i];
                             tmpvector.H_fraction = indata.EFlowPhoton_Ehad[i];
@@ -1601,16 +1544,15 @@ namespace NewHEPHeaders {
                 }
                 for (size_t i = 0; i < indata.EFlowNeutralHadron_; i++) {
                     DetVector tmpvector; /* Assign the vectors: */  {
-/* Setting momentum components: */  {
+                        /* Setting momentum components: */  {
                             TLorentzVector tmp;
-
                             tmp.SetPtEtaPhiM (indata.EFlowNeutralHadron_ET[i], indata.EFlowNeutralHadron_Eta[i], indata.EFlowNeutralHadron_Phi[i], 0);
                             tmpvector[0] = tmp.Px ();
                             tmpvector[1] = tmp.Py ();
                             tmpvector[2] = tmp.Pz ();
                             tmpvector[3] = tmp.E ();
                         }
-/* Set charge and type: */  {
+                        /* Set charge and type: */  {
                             tmpvector.charge = 0;
                             tmpvector.E_fraction = indata.EFlowNeutralHadron_Eem[i];
                             tmpvector.H_fraction = indata.EFlowNeutralHadron_Ehad[i];
@@ -1621,18 +1563,25 @@ namespace NewHEPHeaders {
                 DecideLeptJet () ;
                 ClusterJets   () ;
             }
+
+            DelphesContainer () : jet_def (fastjet::antikt_algorithm, 1.0) {
+                AllParticles.clear ();
+                Electrons.clear ();
+                Muons.clear ();
+                inclusive_jets.clear ();
+                clust_seq = (fastjet::ClusterSequence *) (&junk_address);
+            }
+            ~DelphesContainer () {
+                if (clust_seq!=((fastjet::ClusterSequence*)(&junk_address))) {delete clust_seq;}
+            }
         };
         class FullDelphesContainer {
-          private:
-          public:
-            DelphesContainer detinfo;
-            GenPartContainer geninfo;
-              std::vector < JetContainer * >taujets;
-              std::vector < JetContainer * >botjets;
-              FullDelphesContainer () {
-            }
-             ~FullDelphesContainer () {
-            }
+        private:
+        public:
+            DelphesContainer                 detinfo ;
+            GenPartContainer                 geninfo ;
+            std::vector      <JetContainer*> taujets ;
+            std::vector      <JetContainer*> botjets ;
             template < typename T > inline void ReadFromDelphes (T & indata) {
                 taujets.clear ();
                 botjets.clear ();
@@ -1641,10 +1590,8 @@ namespace NewHEPHeaders {
                 for (size_t i = 0; i < geninfo.taus.size (); i++) {
                     double smallest = 10000;
                     long good_index = -10000;
-
                     for (size_t j = 0; j < detinfo.jets.size (); j++) {
                         double tmpdist = detinfo.jets[j].cone (geninfo.taus[i]);
-
                         if (tmpdist < smallest) {
                             smallest = tmpdist;
                             good_index = j;
@@ -1658,10 +1605,8 @@ namespace NewHEPHeaders {
                 for (size_t i = 0; i < geninfo.bots.size (); i++) {
                     double smallest = 10000;
                     long good_index = -10000;
-
                     for (size_t j = 0; j < detinfo.jets.size (); j++) {
                         double tmpdist = detinfo.jets[j].cone (geninfo.bots[i]);
-
                         if (tmpdist < smallest) {
                             smallest = tmpdist;
                             good_index = j;
@@ -1673,6 +1618,8 @@ namespace NewHEPHeaders {
                     }
                 }
             }
+            FullDelphesContainer () {}
+            ~FullDelphesContainer () {}
         };
     }
     namespace TopReconstruction {
@@ -2067,4 +2014,528 @@ namespace NewHEPHeaders {
         }
     };
 }
+
+#ifdef USE_RNN
+#include "MyMVASDTopTagger.cc"
+namespace RNN {
+
+    const size_t GFS       =    5 ;
+    const size_t GOS       =    7 ;
+    const size_t GQS       =   18 ;
+    const size_t storesize =  800 ;
+    const bool   UseRNN    = true ;
+
+    template <typename T> inline T ProcessAngle (T & th) {
+        while ( th >  NewHEPHeaders::CONSTANTS::PI ) { th = th - (NewHEPHeaders::CONSTANTS::PI2) ; }
+        while ( th < -NewHEPHeaders::CONSTANTS::PI ) { th = th + (NewHEPHeaders::CONSTANTS::PI2) ; }
+    }
+    class PreProcessor {
+    private:
+    public:
+        float Pt, Eta, Phi, M ;
+        inline void ProcessJet (fastjet::PseudoJet & injet, float * Output,bool doprocess) {
+            float pt , eta , phi , m ;
+            if (doprocess) {
+                pt  = injet.pt  () / Pt  ; Output [0] = pt  ;
+                eta = injet.eta () - Eta ; Output [1] = eta ;
+                phi = injet.phi () - Phi ; ProcessAngle (phi) ; Output[2] = phi ;
+                m   = injet.m   () / M   ; Output [3] = m   ;
+            } else if (true)  {
+                pt  = injet.pt  () ; Output [0] = pt  ;
+                eta = injet.eta () ; Output [1] = eta ;
+                phi = injet.phi () ; ProcessAngle (phi) ; Output [2] = phi   ;
+                m   = injet.m   () ; Output [3] = m   ;
+            } else if (false) {
+                pt  = injet.pt  () ; Output [0] = pt  ;
+                eta = injet.eta () ; Output [1] = eta ;
+                phi = injet.phi () ; Output [2] = phi ;
+                m   = injet.m   () ; Output [3] = m   ;
+            }
+        }
+        inline void init (fastjet::PseudoJet & injet) {
+            Pt  = injet.pt  () ;
+            Eta = injet.eta () ;
+            Phi = injet.phi () ;
+            M   = injet.m   () + NeuralNetworks::epsG ;
+        }
+        inline void operator () (fastjet::PseudoJet & injet, float * Output, bool doprocess) {ProcessJet(injet,Output,doprocess);}
+        PreProcessor(){}
+        ~PreProcessor(){}
+    };
+    class StoreNode {
+    private:
+    public:
+        bool   lastnode         ;
+        float  Input    [ GOS ] ;
+        size_t Next     [ 2   ] ;
+        inline void debugshow (int index) {
+            printf("Showing Node: (%d) {\n",index);
+            for (size_t i=0;i<GOS;i++) { printf("\t %ld = %e;\n",i,Input[i]); }
+            printf("}\n");
+        }
+        StoreNode  () {}
+        ~StoreNode () {}
+    };
+    class MainStore {
+    private:
+    public:
+        HEPTopTagger::TopTagger MainTopTagger     ;
+        StoreNode               store [storesize] ;
+        size_t                  count             ;
+        inline StoreNode & operator [] (size_t i) {return store[i];}
+        inline void clear(){MainTopTagger();}
+        inline void debugshow () {for(size_t i=0;i<storesize;i++){store[i].debugshow(i);}}
+        MainStore  () {}
+        ~MainStore () {}
+    } ;
+
+    class AllParameters {
+    private:
+        inline void Randomize (CPPFileIO::myrandgen<pcg32_fast>&engine) {
+            pars(engine);
+            for ( size_t i=0 ; i < weight.size   () ; i++ ) { weight [i] = engine [0] ; }
+            for ( size_t i=0 ; i < bias.size     () ; i++ ) { bias   [i] = engine [0] ; }
+        }
+        inline void WriteToFile (std::string File="./OutParameters") {
+            FILE*f=fopen(&(File[0]),"w"); pars(f);
+            for ( size_t j=0 ; j<weight.size () ; j++ ) { fprintf ( f , "weight[%ld]=%e;" , j , weight [j] ) ; }
+            fprintf (f,"\n") ;
+            for ( size_t j=0 ; j<bias.size   () ; j++ ) { fprintf ( f , "bias[%ld]=%e;"   , j , bias   [j] ) ; }
+            fprintf (f,"\n") ;
+            fclose(f);
+        }
+        inline void initialize () {
+            {OS=GOS;FS=GFS;QS=GQS;}
+            {weight.resize(FS,(3*OS)+(2*FS));bias.resize(FS);}
+            size_t sizes[4]={QS+FS+OS,10,5,1};
+            for(size_t i=0;i<4;i++) {pars.sizes[i]=sizes[i];} pars();
+            Randomize();
+            #include "OutParameters"
+        }
+        inline void Randomize () {CPPFileIO::myrandgen<pcg32_fast>engine(1,-1.0,1.0);Randomize(engine);}
+    public:
+        NeuralNetworks::Parameters <float,3> pars ;
+        NeuralNetworks::GoodMatrix weight ; NeuralNetworks::GoodVector bias   ;
+        size_t OS, FS, QS;
+        inline void operator () (std::string filename) {WriteToFile(filename);}
+        inline void operator () () {Randomize();}
+        AllParameters  () {initialize();}
+        ~AllParameters () {}
+    };
+
+    template <typename TP> class JetNN {
+    private:
+        // The private data elements:
+        bool                         lastnode    ;
+        NeuralNetworks::GoodVector   Input       ;
+        NeuralNetworks::GoodVector   Diffs       ;
+        size_t                       Next[2]     ;
+        float                      * TrainDeltas ;
+
+        // Important inline accessing methods:
+        inline size_t OS () {return parent->OS();}
+        inline size_t FS () {return parent->FS();}
+        inline float weight (size_t y, size_t x) {return parent->weight(y,x);}
+        inline NeuralNetworks::GoodMatrix & weight () {return parent->weight();}
+        inline float bias (size_t y) {return parent->bias(y);}
+        inline NeuralNetworks::GoodVector & bias() {return parent->bias();}
+        inline JetNN <TP> & Next0 () { return parent[0][Next[0]] ; }
+        inline JetNN <TP> & Next1 () { return parent[0][Next[1]] ; }
+        inline size_t sizeX(){return weight().sizeX();}
+        inline size_t sizeY(){return weight().sizeY();}
+        size_t list (size_t i) {return parent->Boundary(i);}
+        inline float & SelfInput (size_t i) {
+            const size_t index = 2 * ( FS() + OS() ) ;
+            return Input(index+i);
+        }
+        inline void SetupInputs () {
+            if(!lastnode) {
+                Next0().Output=&(Input(0))         ;
+                Next1().Output=&(Input(FS()+OS())) ;
+            }
+        }
+        inline void EventInit () {lastnode=true;Input.resize(sizeX());Input.ZeroAll();}
+        inline void ReadFromStore (StoreNode & instore) {
+            EventInit();
+            lastnode=instore.lastnode;
+            Next[0]=instore.Next[0]; Next[1]=instore.Next[1];
+            SetupInputs();
+            for (size_t i=0;i<OS();i++) {SelfInput(i)=instore.Input[i];}
+        }
+
+        // The part to evaluate derivatives:
+        inline float PI (size_t i) {return Diffs(i)*TrainDeltas[i];}
+        inline float DI (size_t k, size_t l, size_t i) {
+            if (lastnode) { return 0 ; }
+            else {
+                if ((list(0)<=i)&&(i<list(1))) { return 0 ; }
+                if ((list(1)<=i)&&(i<list(2))) { i=i-list(1); return Next0().BackDer(k,l,i); }
+                if ((list(2)<=i)&&(i<list(3))) { return 0 ; }
+                if ((list(3)<=i)&&(i<list(4))) { i=i-list(3); return Next1().BackDer(k,l,i); }
+                else                           { return 0 ; }
+            }
+        }
+        inline float DI (size_t l, size_t i) {
+            if (lastnode) { return 0 ; }
+            else {
+                if ((list(0)<=i)&&(i<list(1))) { return 0 ; }
+                if ((list(1)<=i)&&(i<list(2))) { i=i-list(1); return Next0().BiasDer(l,i); }
+                if ((list(2)<=i)&&(i<list(3))) { return 0 ; }
+                if ((list(3)<=i)&&(i<list(4))) { i=i-list(3); return Next1().BiasDer(l,i); }
+                else                           { return 0 ; }
+            }
+        }
+        inline float DO (size_t k, size_t l, size_t i) {
+            float ret=0;
+            if (k==i) {ret=Input(l);}
+            for (size_t j=0;j<weight().sizeX();j++) { ret = ret + (weight(i,j)*DI(k,l,j)) ; }
+            return ret*Diffs(i) ;
+        }
+        inline float DO (size_t l, size_t i) {
+            float ret=0;
+            if (l==i) {ret=1.0;}
+            for (size_t j=0;j<weight().sizeX();j++) { ret = ret + (weight(i,j)*DI(l,j)) ; }
+            return ret*Diffs(i) ;
+        }
+
+        // The activation part:
+        inline void activate (bool uselru=true) {
+            NeuralNetworks::GoodVector OutBuf; OutBuf(weight(),Input,bias());
+            if (uselru) { NeuralNetworks::GoodSoftLRU  tmpslave; tmpslave(OutBuf,Diffs); }
+            else        { NeuralNetworks::GoodSoftSign tmpslave; tmpslave(OutBuf,Diffs); }
+            const size_t mark = 2*(OS()+FS()) ;
+            for ( size_t i=0 ; i<OS         () ; i++ ) { Output [i]      = Input  (i+mark) ; }
+            for ( size_t i=0 ; i<OutBuf.size() ; i++ ) { Output [i+OS()] = OutBuf (i)      ; }
+        }
+        inline void SetupStructer (fastjet::PseudoJet & _jet,bool DoPreProcess=true) {
+            EventInit () ;
+            fastjet::PseudoJet pjet1(0,0,0,0), pjet2(0,0,0,0);
+            if (_jet.validated_cs()->has_parents(_jet,pjet1,pjet2)) {
+                lastnode=false; if (pjet1.pt()<pjet2.pt()) {std::swap(pjet1,pjet2);}
+                Next[0]=parent[0](); Next[1]=parent[0]();
+                SetupInputs();
+                Next0()(pjet1);Next1()(pjet2);
+                SelfInput(4)=pjet1.delta_R(pjet2);
+                float tmp_mass = _jet.m() ;
+                if (tmp_mass>0.01) {SelfInput(5)=(pjet1.m()+pjet2.m())/tmp_mass;}
+                else {SelfInput(5)=0;}
+                SelfInput(6)=CPPFileIO::mymax(pjet1.E(),pjet2.E())/_jet.E();
+            }
+            parent->processer(_jet,&(SelfInput(0)),DoPreProcess);
+        }
+        inline void ChainActivate (bool uselru=true) {
+            if (!lastnode) {Next0().ChainActivate();Next1().ChainActivate();}
+            activate(uselru);
+        }
+    public:
+
+        // The public pointers and derivative data elements:
+        float                      * Output      ;
+        TP                         * parent      ;
+        NeuralNetworks::GoodMatrix   BackDer     ;
+        NeuralNetworks::GoodVector   BiasDer     ;
+
+        // Important public functions:
+        inline void EvalDerivative (float * _TrainDeltas)                           {
+            TrainDeltas = _TrainDeltas ;
+            if(!lastnode){
+                NeuralNetworks::GoodVector Xi ; Xi.resize(FS()) ;
+                Xi.ZeroAll() ;
+                for(size_t i=0;i<sizeY();i++) for(size_t jj=list(1);jj<list(2);jj++){
+                    size_t j=jj-list(1);
+                    Xi(j)=Xi(j)+(PI(i)*weight(i,jj));
+                }
+                Next0().EvalDerivative(&(Xi(0)));
+                Xi.ZeroAll() ;
+                for(size_t i=0;i<sizeY();i++) for(size_t jj=list(3);jj<list(4);jj++){
+                    size_t j=jj-list(3);
+                    Xi(j)=Xi(j)+(PI(i)*weight(i,jj));
+                }
+                Next1().EvalDerivative(&(Xi(0)));
+            }
+            BackDer.resize (sizeY(),sizeX()) ; BiasDer.resize (sizeY()) ;
+            for(size_t m=0;m<BackDer.sizeY();m++) for(size_t n=0;n<BackDer.sizeX();n++) {
+                BackDer(m,n)=PI(m)*Input(n);
+                if(!lastnode)
+                {BackDer(m,n)=BackDer(m,n)+Next0().BackDer(m,n)+Next1().BackDer(m,n);}
+            }
+            for(size_t m=0;m<BiasDer.size();m++){BiasDer(m)=PI(m);}
+        }
+        inline StoreNode GetStore  ()                                               {
+            StoreNode ret ;
+            ret.lastnode=lastnode;
+            for (size_t i=0;i<OS();i++) {ret.Input[i]=SelfInput(i);}
+            ret.Next[0]=Next[0] ;
+            ret.Next[1]=Next[1] ;
+            return ret;
+        }
+        inline void operator ()    (bool uselru=true)                               {ChainActivate(uselru);}
+        inline void operator ()    (StoreNode&instore)                              {ReadFromStore(instore);}
+        inline void operator ()    (fastjet::PseudoJet&_jet,bool DoPreProcess=true) {SetupStructer(_jet,DoPreProcess);}
+
+        // The constructors and destructors (Nothing to be done here...) :
+        JetNN  () {}
+        ~JetNN () {}
+    };
+    template <typename TDW, typename TDB> class JetStore {
+    private:
+
+        // Private Data Elements:
+        size_t                                   list[6] ;
+        AllParameters                          * pars    ;
+        size_t                                   count   ;
+        std::vector <JetNN<JetStore<TDW,TDB>>>   Store   ;
+        TDW                                      DeltaW  ;
+        TDB                                      DeltaB  ;
+        size_t                                   EvtCnt  ;
+
+        // Private Access Functions:
+        inline void GetStores  (MainStore&stores)     {
+            stores.count=count;
+            for(size_t i=0;i<count;i++){stores[i]=Store[i].GetStore();}
+        }
+        inline void initialize (AllParameters&inpars) {
+            pars   = & inpars          ;
+            count  =   0               ;
+            TrainDeltas.resize (FS())  ;
+            /* List the boundaries: */ {
+                list[0] = 0              ;
+                list[1] = OS()           ;
+                list[2] = list[1] + FS() ;
+                list[3] = list[2] + OS() ;
+                list[4] = list[3] + FS() ;
+                list[5] = list[4] + OS() ;
+            }
+            { DeltaW(weight()); DeltaB(bias()); Store.resize(storesize); }
+            for (size_t i=0;i<Store.size();i++) {Store[i].parent=this;}
+        }
+        inline size_t getnew   () {
+            size_t ret = count ;
+            count++            ;
+            return ret         ;
+        }
+        inline void AnalyzeJet (fastjet::PseudoJet & _jet) {
+            Output.resize(OS()+FS());
+            processer.init(_jet);
+            count=0;
+            size_t ret=getnew();
+            Store[ret].Output=&(Output[0]);
+            Store[ret](_jet,false);
+            activate();
+        }
+        inline void Train (size_t y, size_t x) {DeltaW(y,x,D(y,x));}
+        inline void Train (size_t y)           {DeltaB(y,D(y));}
+        inline void TrainW () {for(size_t y=0;y<weight().sizeY();y++)for(size_t x=0;x<weight().sizeX();x++){Train(y,x);}}
+        inline void TrainB () {for(size_t y=0;y<bias().size();y++){Train(y);}}
+        inline void apply (float eta) {
+            if(EvtCnt>0){
+                DeltaW ((float)eta/EvtCnt) ;
+                DeltaB ((float)eta/EvtCnt) ;
+                EvtCnt = 0                 ;
+            }
+        }
+
+    public:
+
+        // The important data elements:
+        NeuralNetworks::GoodVector     Output      ;
+        NeuralNetworks::GoodVector     TrainDeltas ;
+        PreProcessor                   processer   ;
+
+        // Important public functions:
+        inline float & weight (size_t x, size_t y)    { return pars->weight (x,y) ; }
+        inline float & bias   (size_t x)              { return pars->bias   (x)   ; }
+        inline NeuralNetworks::GoodMatrix & weight () { return pars->weight       ; }
+        inline NeuralNetworks::GoodVector & bias   () { return pars->bias         ; }
+        inline size_t   OS          ()         { return pars->OS               ; }
+        inline size_t   FS          ()         { return pars->FS               ; }
+        inline size_t   Boundary    (size_t i) { return list   [i]             ; }
+        inline size_t   size        ()         { return Output.size ()         ; }
+        inline void     activate    ()         { Store[0]           ()         ; }
+        inline void     Train       ()         {
+            Store[0].EvalDerivative (&(TrainDeltas(0))) ;
+            TrainB () ; TrainW () ;
+            EvtCnt++ ;
+        }
+        inline float  & GetD        (size_t i) { return TrainDeltas (i)      ; }
+        inline NeuralNetworks::GoodVector & GetD () { return TrainDeltas     ; }
+        inline float D (size_t y, size_t x)  { return Store[0].BackDer (y,x) ; }
+        inline float D (size_t x)            { return Store[0].BiasDer (x)   ; }
+        inline void     ReadMainStore (MainStore&instore) {
+            Output.resize (OS()+FS()) ;
+            Store[0].Output = & (Output[0]) ;
+            count = instore.count ;
+            for (size_t i=0;i<count;i++) {Store[i](instore.store[i]);}
+            activate();
+        }
+        inline JetNN<JetStore<TDW,TDB>> & operator [] ( size_t i                  ) {return Store[i];}
+        inline void                       operator () ( float eta                 ) {apply(eta);}
+        inline void                       operator () ( MainStore & fullstore     ) {GetStores(fullstore);}
+        inline void                       operator () ( fastjet::PseudoJet & _jet ) {AnalyzeJet(_jet);}
+        inline void                       operator () ( AllParameters & inpars    ) {initialize(inpars);}
+        inline size_t                     operator () ()                            {return getnew();}
+
+        JetStore(AllParameters&inpars) {initialize(inpars);}
+        JetStore(){}
+        ~JetStore(){}
+    };
+
+    typedef JetStore <NeuralNetworks::GoodAdaMaxMatrix,NeuralNetworks::GoodAdaMaxVector> JetRNN ;
+
+    class CNNTopTagger {
+    private:
+
+        // Important private data elements:
+        float                      AvgError ;
+        size_t                     count    ;
+        NeuralNetworks::GoodFCNN   network  ;
+        AllParameters            * pars     ;
+
+        // Important wrapper functions:
+        inline size_t QS () {return pars->QS;}
+        inline size_t OS () {return pars->OS;}
+        inline size_t FS () {return pars->FS;}
+        inline void initialize (AllParameters*_pars) { pars = _pars ; network(pars->pars); }
+        inline void initialize (AllParameters&_pars) {initialize(&_pars);}
+        HEPTopTagger::TopTagger MainTopTagger ;
+        inline void Analyze (HEPTopTagger::TopTagger&MainTagger) {
+            for (size_t i=0;i<4;i++) {network.Input()(i)=MainTagger.EFCR[i];}
+            network.Input()(4)  = MainTagger.tau1tau2       ;
+            network.Input()(5)  = MainTagger.tau2tau3       ;
+            network.Input()(6)  = MainTagger.tau3tau4       ;
+            network.Input()(7)  = MainTagger.DeltaMTop      ;
+            network.Input()(8)  = MainTagger.PrunedMass     ;
+            network.Input()(9)  = MainTagger.frec           ;
+            network.Input()(10) = MainTagger.EnergyFraction ;
+            network.Input()(11) = MainTagger.NumBs          ;
+            network.Input()(12) = MainTagger.m12            ;
+            network.Input()(13) = MainTagger.m23            ;
+            network.Input()(14) = MainTagger.m13            ;
+            network.Input()(15) = MainTagger.m123           ;
+            network.Input()(16) = MainTagger.LSDChi         ;
+            network.Input()(17) = MainTagger.ROpt           ;
+            MainTopTagger       = MainTagger                ;
+            network();
+        }
+        inline void train (float _ans1) {
+            NeuralNetworks::GoodVector ans; ans.resize(1);
+            ans(0)=_ans1;
+            float delta = CPPFileIO::mymod (network.Output()(0)-_ans1) ;
+            network(ans); count++;
+            if (CPPFileIO::mymod(delta)>0.9) {AvgError=AvgError+1.0;}
+        }
+
+    public:
+
+        // Important public functions:
+        inline NeuralNetworks::GoodVector & Output () {return network.Output();}
+        inline float   ApplyDelta       (float eta) {
+            if(count>0) {
+                float ret = (float) AvgError / count ;
+                network(eta); count=0; AvgError=0;
+                return ret;
+            } else {
+                printf("No Event Analyzed...\n");
+                return 1.0 ;
+            }
+        }
+        inline void    activate         ()          {network();}
+        inline void    EvalChain        ()          {network.EvalChain();}
+        inline float & getChainDelta    (size_t i)  {
+            size_t max = network.Input().size() - 1 - FS() ;
+            return network.C(0,max+i);
+        }
+
+        // Important accessing functions:
+        inline float & operator [] (size_t i)                           {return network.Input()(QS()+i);}
+        inline float   operator () ()                                   {return network.Output()(0);}
+        inline void    operator () (float _ans1)                        {train(_ans1);}
+        inline void    operator () (HEPTopTagger::TopTagger&MainTagger) {Analyze(MainTagger);}
+        inline void    operator () (MainStore&store)                    {store.MainTopTagger=MainTopTagger;}
+        inline void    operator () (AllParameters*_pars)                {initialize(_pars);}
+        inline void    operator () (AllParameters&_pars)                {initialize(_pars);}
+
+        // Constructors and destructorss:
+        CNNTopTagger (AllParameters*_pars) { initialize(_pars); }
+        CNNTopTagger (AllParameters&_pars) { initialize(_pars); }
+        CNNTopTagger(){}
+        ~CNNTopTagger(){}
+    };
+
+    class FullTopTagger {
+    private:
+        AllParameters * par2       ;
+        CNNTopTagger    toptagger1 ;
+        JetRNN          toptagger2 ;
+        size_t          EvtCnt     ;
+        float           TrueError  ;
+        inline void Train (float ans) {
+            float nnout=Output()(0);
+            float delta = CPPFileIO::mymod(nnout-ans);
+            if (delta>0.9) {TrueError=TrueError+1.0;}
+            toptagger1(ans);
+            if((UseRNN)&&(Rate_RNN>0.0)){
+                for(size_t i=0;i<toptagger2.TrainDeltas.size();i++)
+                {toptagger2.TrainDeltas(i)=toptagger1.getChainDelta(i);}
+                toptagger2.Train();
+            }
+            EvtCnt++;
+        }
+        inline void RNN2CNN () {
+            for (size_t i=0;i<toptagger2.Output.size();i++) {toptagger1[i]=toptagger2.Output(i);}
+            if(false){
+                printf("Begin transferring outputs RNN -> CNN {\n");
+                for (size_t i=0;i<toptagger2.Output.size();i++)
+                {printf("Transferring output %ld = %e\n",i,toptagger2.Output(i));}
+                printf("}\n");
+            }
+        }
+        inline void initialize (AllParameters&_par2) {
+            toptagger1(&_par2);
+            toptagger2(_par2);
+            par2=&_par2;
+            Rate_RNN=0.01;Rate_CNN=0.1;
+            EvtCnt=0;TrueError=0;
+        }
+    public:
+        float Rate_RNN , Rate_CNN ;
+
+        inline NeuralNetworks::GoodVector & Output () {return toptagger1.Output();}
+        inline float ApplyDelta (float rate=1.0) {
+            float ret;
+            if (Rate_CNN>0.0) {toptagger1.ApplyDelta(Rate_CNN*rate);}  else {toptagger1.ApplyDelta(0.0);}
+            if ((UseRNN)&&(Rate_RNN>0.0)) {toptagger2(Rate_RNN*rate);} else {toptagger2(0.0);}
+            ret=(float)TrueError/EvtCnt;
+            EvtCnt=0;TrueError=0;
+            return ret;
+        }
+        inline void operator () (float ans) {Train(ans);}
+        inline void operator () (MainStore&store) {
+            store.clear(); toptagger1(store);
+            if (UseRNN)   {toptagger2(store);}
+        }
+        inline void putstore    (MainStore&store) {
+            if (UseRNN) {
+                toptagger2.ReadMainStore(store);
+                RNN2CNN();
+            }
+            toptagger1(store.MainTopTagger);
+        }
+        inline void operator () (fastjet::PseudoJet & injet, NewHEPHeaders::vector4s & bs) {
+            /* The RNN Part: */ if (UseRNN) {toptagger2(injet);RNN2CNN();}
+            /* The fully connected part: */ if (true) {
+                HEPTopTagger::TopTagger thetagger;
+                {thetagger();thetagger(injet);thetagger(bs);}
+                toptagger1(thetagger);
+            }
+        }
+        inline void operator () (AllParameters&_par2) {initialize(_par2);}
+
+        FullTopTagger (AllParameters&_par2) {initialize(_par2);}
+        FullTopTagger(){}
+        ~FullTopTagger(){}
+    } ;
+}
+#endif
+
 #endif
