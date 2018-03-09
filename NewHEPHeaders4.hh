@@ -10,6 +10,7 @@
 #include <fastjet/Selector.hh>
 #include <fastjet/tools/JHTopTagger.hh>
 #include "fastjet/tools/Filter.hh"
+#include "fastjet/tools/Pruner.hh"
 #include "TLorentzVector.h"
 #include "TFile.h"
 #include "TH1D.h"
@@ -910,14 +911,11 @@ namespace NewHEPHeaders {
     namespace MainEventData {
         class EventData {
         private:
-
             pythia_nodes store ;
             float event_weight ;
             float event_sigma  ;
-
             fastjet::ClusterSequence * clust_seq_nrmjet ;
             fastjet::JetDefinition jet_def_nrmjet ;
-
             inline void clear_jet_cluster () {
                 if(!is_junked(clust_seq_nrmjet)) {
                     delete     clust_seq_nrmjet ;
@@ -1187,11 +1185,9 @@ namespace NewHEPHeaders {
     namespace MassDropTagger {
         class HardSubStructureFinder {
         private:
-            NewHEPHeaders::pseudojets t_parts;
-            double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet ;
-            double mhmax, mhmin, mh ;
-            size_t nfilt ;
-
+            double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet;
+            double mhmax, mhmin, mh; double zcut, rcut_factor;
+            size_t nfilt;
             inline void find_structures (const fastjet::PseudoJet&this_jet) {
                 fastjet::PseudoJet parent1(0,0,0,0), parent2(0,0,0,0);
                 if ( (this_jet.m()<max_subjet_mass) || (!this_jet.validated_cs()->has_parents(this_jet, parent1, parent2)) ) {t_parts.push_back(this_jet);}
@@ -1204,31 +1200,45 @@ namespace NewHEPHeaders {
             inline void run (fastjet::PseudoJet&injet) {
                 t_parts.clear(); find_structures(injet);
                 t_parts=sorted_by_pt(t_parts);
-                for(size_t i=1;i<t_parts.size();i++) for(size_t j=0;j<i;j++) {
-                    fastjet::PseudoJet triple = fastjet::join (t_parts[i],t_parts[j]) ;
-                    double filt_tau_R = std::min ( Rfilt , 0.5*sqrt(t_parts[i].squared_distance(t_parts[j])) ) ;
-                    fastjet::JetDefinition filtering_def(fastjet::cambridge_algorithm, filt_tau_R);
-                    fastjet::Filter filter(filtering_def, fastjet::SelectorNHardest(nfilt) * fastjet::SelectorPtMin(minpt_subjet));
+                if(t_parts.size()>1) {
+                    size_t i=1; size_t j=2;
+                    triple = fastjet::join (t_parts[i],t_parts[j]) ;
+                    filt_tau_R = std::min ( Rfilt , 0.5*sqrt(t_parts[i].squared_distance(t_parts[j])) ) ;
+                    fastjet::JetDefinition filtering_def(fastjet::cambridge_algorithm,filt_tau_R);
+                    fastjet::Filter filter(filtering_def,fastjet::SelectorNHardest(nfilt)*fastjet::SelectorPtMin(minpt_subjet));
                     fastjet::PseudoJet topcandidate = filter(triple);
                     filteredjetmass = topcandidate.m();
                     if((mhmin<filteredjetmass)&&(filteredjetmass<mhmax)&&(topcandidate.pieces().size()>1)){
                         fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
                         fastjet::ClusterSequence cs_top_sub   (topcandidate.pieces(),reclustering) ;
-                        pseudojets top_subs = sorted_by_pt (cs_top_sub.exclusive_jets(2)) ;
-                        if (top_subs[1].perp()>minpt_subjet) {
-                            deltatop = CPPFileIO::mymod(topcandidate.m()-mh) ;
+                        tau_subs=sorted_by_pt(cs_top_sub.exclusive_jets(2));
+                        if (tau_subs[1].perp()>minpt_subjet) {
+                            Higgs = tau_subs[0] + tau_subs[1] ;
+                            deltatop=CPPFileIO::mymod(topcandidate.m()-mh);
+                            tau_hadrons = topcandidate.constituents();
+                            double Rprun = injet.validated_cluster_sequence()->jet_def().R();
+                            fastjet::JetDefinition jet_def_prune(fastjet::cambridge_algorithm, Rprun);
+                            fastjet::Pruner pruner (jet_def_prune, zcut, rcut_factor);
+                            prunedjet = pruner(triple);
+                            prunedmass = prunedjet.m();
+                            unfiltered_mass = triple.m();
                         }
                     }
                 }
             }
             inline void initialize () {
-                t_parts.clear();
+                t_parts.clear(); tau_subs.clear(); tau_hadrons.clear();
                 max_subjet_mass=30; Rfilt=0.3; minpt_subjet=20;
                 mass_drop_threshold=0.7; nfilt=4; filteredjetmass=0.0;
-                mh=125.0; mhmax=mh+30.0; mhmin=mh-30.0;
+                mh=125.0; mhmax=mh+30.0; mhmin=mh-30.0; filt_tau_R=0;
+                zcut=0.1; rcut_factor=0.5; prunedmass=0.0; unfiltered_mass=0.0;
             }
         public:
-            double filteredjetmass, deltatop;
+            double             filteredjetmass , deltatop , filt_tau_R  , prunedmass , unfiltered_mass ;
+            pseudojets         tau_subs        , t_parts  , tau_hadrons ;
+            fastjet::PseudoJet prunedjet       , triple   , Higgs       ;
+            inline void operator () () {initialize();}
+            inline void operator () (fastjet::PseudoJet&injet) {run(injet);}
             HardSubStructureFinder(){initialize();}
             ~HardSubStructureFinder(){}
         };
