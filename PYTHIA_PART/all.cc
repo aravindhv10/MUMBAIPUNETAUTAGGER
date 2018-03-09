@@ -38,11 +38,13 @@ private:
 public:
     int GenSim ( int ThID ) {
         /* Create the directory structure: */ {
-            CPPFileIO::ToDir dirchanger (true) ;
-            dirchanger("hepmc"); dirchanger(ThID);
-            mkfifo("./hepmc.fifo",(mode_t)0755);
+            char tmp[256]; sprintf(tmp,"hepmc/%d",ThID);
+            mkdir("hepmc",0755); mkdir(tmp,0755);
+            sprintf(tmp,"hepmc/%d/hepmc.fifo",ThID);
+            mkfifo(tmp,(mode_t)0755);
         }
         CPPFileIO::ForkMe forker ;
+        //printf("Now Starting generate...\n");
         if(forker.InKid()) {generate(ThID);}
         if(forker.InKid()) {RunDelphes(ThID);}
         return 0;
@@ -89,9 +91,10 @@ private:
 public:
     int GenSim ( int ThID ) {
         /* Create the directory structure: */ {
-            CPPFileIO::ToDir dirchanger (true) ;
-            dirchanger("hepmc"); dirchanger(ThID);
-            mkfifo("./hepmc.fifo",(mode_t)0755);
+            char tmp[256]; sprintf(tmp,"hepmc/%d",ThID);
+            mkdir("hepmc",0755); mkdir(tmp,0755);
+            sprintf(tmp,"hepmc/%d/hepmc.fifo",ThID);
+            mkfifo(tmp,(mode_t)0755);
         }
         CPPFileIO::ForkMe forker ;
         if(forker.InKid()) {generate(ThID);}
