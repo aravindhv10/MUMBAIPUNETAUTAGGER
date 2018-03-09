@@ -1222,17 +1222,15 @@ namespace NewHEPHeaders {
                             double Rprun=injet.validated_cluster_sequence()->jet_def().R();
                             fastjet::JetDefinition jet_def_prune(fastjet::cambridge_algorithm, Rprun);
                             fastjet::Pruner pruner(jet_def_prune,zcut,rcut_factor);
-                            prunedjet=pruner(triple);
-                            prunedmass=prunedjet.m();
-                            unfiltered_mass=triple.m();
+                            prunedjet=pruner(triple); prunedmass=prunedjet.m(); unfiltered_mass=triple.m();
                         }
                     }
                 }
             }
             inline void initialize () {
                 t_parts.clear(); tau_subs.clear(); tau_hadrons.clear();
-                max_subjet_mass=30; Rfilt=0.3; minpt_subjet=20;
-                mass_drop_threshold=0.7; nfilt=4; filteredjetmass=0.0;
+                max_subjet_mass=30; Rfilt=0.3; minpt_subjet=10;
+                mass_drop_threshold=0.7; nfilt=999; filteredjetmass=0.0;
                 mh=125.0; mhmax=mh+100.0; mhmin=mh-100.0; filt_tau_R=0;
                 zcut=0.1; rcut_factor=0.5; prunedmass=0.0; unfiltered_mass=0.0;
                 deltah=10000; HiggsTagged=false;
@@ -1352,8 +1350,9 @@ namespace NewHEPHeaders {
         private:
         public:
             pythia_nodes store;
-            vector4s taus;
-            vector4s bots;
+            vector4s taus  ;
+            vector4s bots  ;
+            vector4  Higgs ;
             float weight;
             void clear_all () {
                 store.clear ();
@@ -1361,21 +1360,14 @@ namespace NewHEPHeaders {
                 bots.clear ();
                 weight = 0;
             }
-            size_t findparticle (long PID) {
-                size_t ret = 0;
-                long MPID = CPPFileIO::mymod (PID);
-
+            size_t findparticle (long PID, bool takemod=true) {
+                if(takemod){PID=CPPFileIO::mymod(PID);}
                 for (size_t i = 0; i < store.size (); i++) {
                     long ppid = store[i].id ();
-                    long mpid = CPPFileIO::mymod (ppid);
-
-                    if (ppid == PID) {
-                        return i;
-                    } else if (mpid == MPID) {
-                        ret = i;
-                    }
+                    if(takemod){ppid=CPPFileIO::mymod(ppid);}
+                    if (ppid==PID) {return i;}
                 }
-                return ret;
+                return 0;
             }
             size_t recurse (size_t idx) {
                 if (idx > 0) {
@@ -1398,7 +1390,6 @@ namespace NewHEPHeaders {
                             for (size_t i = d1; (i >= d1) && (i <= d2) && (i > 0); i++) {
                                 long PPID = (int) store[i].id ();
                                 long MPID = CPPFileIO::mymod (PPID);
-
                                 if (PPID == pid) {
                                     ret = i;
                                     i = d2 + 1;
@@ -1410,7 +1401,6 @@ namespace NewHEPHeaders {
                                     size_t i = d1;
                                     long PPID = (int) store[i].id ();
                                     long MPID = CPPFileIO::mymod (PPID);
-
                                     if (PPID == pid) {
                                         ret = i;
                                     } else if (MPID == pid) {
@@ -1421,13 +1411,8 @@ namespace NewHEPHeaders {
                                     size_t i = d2;
                                     long PPID = (int) store[i].id ();
                                     long MPID = CPPFileIO::mymod (PPID);
-
-                                    if (PPID == pid) {
-                                        ret = i;
-                                        i = d2 + 1;
-                                    } else if (MPID == pid) {
-                                        ret = i;
-                                    }
+                                    if (PPID == pid) { ret = i; i = d2 + 1; }
+                                    else if (MPID == pid) { ret = i; }
                                 }
                             }
                     }
@@ -1450,9 +1435,9 @@ namespace NewHEPHeaders {
                     } else {
                         printf ("SCREWEDDDDDDD!!!! higgs not found\n");
                     }
+                    Higgs = store[Higgs_Index].getvec();
                     size_t d1 = store[Higgs_Index].daughter1 ();
                     size_t d2 = store[Higgs_Index].daughter2 ();
-
                     tau_indices.push_back (recurse (d1));
                     tau_indices.push_back (recurse (d2));
                 }
@@ -1551,7 +1536,7 @@ namespace NewHEPHeaders {
                 }
                 if (jetvectors.size () > 0) {
                     clust_seq = new fastjet::ClusterSequence (jetvectors, jet_def);
-                    inclusive_jets = sorted_by_pt (clust_seq->inclusive_jets (100.0));
+                    inclusive_jets = sorted_by_pt (clust_seq->inclusive_jets (200.0));
                     for (size_t i = 0; i < inclusive_jets.size (); i++) {
                         JetContainer tmp (ToJets, inclusive_jets[i]);
                         tmp.weight = weight;
@@ -1622,7 +1607,7 @@ namespace NewHEPHeaders {
                 ClusterJets   () ;
             }
 
-            DelphesContainer () : jet_def (fastjet::antikt_algorithm, 1.0) {
+            DelphesContainer () : jet_def (fastjet::cambridge_algorithm, 1.0) {
                 AllParticles.clear ();
                 Electrons.clear ();
                 Muons.clear ();

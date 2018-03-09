@@ -112,6 +112,10 @@ private:
         if(indata.detinfo.jets.size()>0) {
             if(indata.detinfo.jets[0].MainHiggsTauTagger.HiggsTagged){
                 MassHist.Fill(indata.detinfo.jets[0].MainHiggsTauTagger.filteredjetmass);
+                //MassHist.Fill(indata.detinfo.jets[0].MainHiggsTauTagger.prunedmass);
+                NewHEPHeaders::vector4 tmpbuf(indata.detinfo.jets[0]);
+                //if(indata.geninfo.Higgs(tmpbuf)<0.3){printf("Real Jet...\n");}
+                //else{printf("Wrong jet...\n");}
             }
         }
     }
