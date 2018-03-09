@@ -1188,40 +1188,43 @@ namespace NewHEPHeaders {
             double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet;
             double mhmax, mhmin, mh; double zcut, rcut_factor;
             size_t nfilt;
-            inline void find_structures (const fastjet::PseudoJet&this_jet) {
-                fastjet::PseudoJet parent1(0,0,0,0), parent2(0,0,0,0);
-                if ( (this_jet.m()<max_subjet_mass) || (!this_jet.validated_cs()->has_parents(this_jet, parent1, parent2)) ) {t_parts.push_back(this_jet);}
+            inline void find_structures (const fastjet::PseudoJet & this_jet) {
+                if(this_jet.m()<max_subjet_mass){t_parts.push_back(this_jet);}
                 else {
-                    if (parent1.m()<parent2.m()) {std::swap(parent1, parent2);}
-                    find_structures(parent1);
-                    if (parent1.m() < mass_drop_threshold * this_jet.m()) {find_structures(parent2);}
+                    fastjet::PseudoJet parent1(0,0,0,0), parent2(0,0,0,0);
+                    bool haskid = this_jet.validated_cs()->has_parents(this_jet,parent1,parent2);
+                    if (haskid) {
+                        if (parent1.m()<parent2.m()) {std::swap(parent1,parent2);}
+                        find_structures(parent1);
+                        if (parent1.m()<mass_drop_threshold*this_jet.m()) {find_structures(parent2);}
+                    }
                 }
             }
             inline void run (fastjet::PseudoJet&injet) {
                 t_parts.clear(); find_structures(injet);
-                t_parts=sorted_by_pt(t_parts);
                 if(t_parts.size()>1) {
-                    size_t i=1; size_t j=2;
+                    t_parts=sorted_by_pt(t_parts);
+                    size_t i=0; size_t j=1;
                     triple = fastjet::join (t_parts[i],t_parts[j]) ;
                     filt_tau_R = std::min ( Rfilt , 0.5*sqrt(t_parts[i].squared_distance(t_parts[j])) ) ;
                     fastjet::JetDefinition filtering_def(fastjet::cambridge_algorithm,filt_tau_R);
                     fastjet::Filter filter(filtering_def,fastjet::SelectorNHardest(nfilt)*fastjet::SelectorPtMin(minpt_subjet));
-                    fastjet::PseudoJet topcandidate = filter(triple);
-                    filteredjetmass = topcandidate.m();
-                    if((mhmin<filteredjetmass)&&(filteredjetmass<mhmax)&&(topcandidate.pieces().size()>1)){
+                    taucandidate=filter(triple); filteredjetmass=taucandidate.m();
+                    if((mhmin<filteredjetmass)&&(filteredjetmass<mhmax)&&(taucandidate.pieces().size()>1)){
                         fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
-                        fastjet::ClusterSequence cs_top_sub   (topcandidate.pieces(),reclustering) ;
+                        fastjet::ClusterSequence cs_top_sub   (taucandidate.pieces(),reclustering) ;
                         tau_subs=sorted_by_pt(cs_top_sub.exclusive_jets(2));
                         if (tau_subs[1].perp()>minpt_subjet) {
-                            Higgs = tau_subs[0] + tau_subs[1] ;
-                            deltatop=CPPFileIO::mymod(topcandidate.m()-mh);
-                            tau_hadrons = topcandidate.constituents();
-                            double Rprun = injet.validated_cluster_sequence()->jet_def().R();
+                            HiggsTagged=true;
+                            Higgs=tau_subs[0]+tau_subs[1];
+                            deltah=CPPFileIO::mymod(taucandidate.m()-mh);
+                            tau_hadrons=taucandidate.constituents();
+                            double Rprun=injet.validated_cluster_sequence()->jet_def().R();
                             fastjet::JetDefinition jet_def_prune(fastjet::cambridge_algorithm, Rprun);
-                            fastjet::Pruner pruner (jet_def_prune, zcut, rcut_factor);
-                            prunedjet = pruner(triple);
-                            prunedmass = prunedjet.m();
-                            unfiltered_mass = triple.m();
+                            fastjet::Pruner pruner(jet_def_prune,zcut,rcut_factor);
+                            prunedjet=pruner(triple);
+                            prunedmass=prunedjet.m();
+                            unfiltered_mass=triple.m();
                         }
                     }
                 }
@@ -1230,13 +1233,15 @@ namespace NewHEPHeaders {
                 t_parts.clear(); tau_subs.clear(); tau_hadrons.clear();
                 max_subjet_mass=30; Rfilt=0.3; minpt_subjet=20;
                 mass_drop_threshold=0.7; nfilt=4; filteredjetmass=0.0;
-                mh=125.0; mhmax=mh+30.0; mhmin=mh-30.0; filt_tau_R=0;
+                mh=125.0; mhmax=mh+100.0; mhmin=mh-100.0; filt_tau_R=0;
                 zcut=0.1; rcut_factor=0.5; prunedmass=0.0; unfiltered_mass=0.0;
+                deltah=10000; HiggsTagged=false;
             }
         public:
-            double             filteredjetmass , deltatop , filt_tau_R  , prunedmass , unfiltered_mass ;
+            double             filteredjetmass , deltah   , filt_tau_R  , prunedmass   , unfiltered_mass ;
             pseudojets         tau_subs        , t_parts  , tau_hadrons ;
-            fastjet::PseudoJet prunedjet       , triple   , Higgs       ;
+            fastjet::PseudoJet prunedjet       , triple   , Higgs       , taucandidate ;
+            bool HiggsTagged ;
             inline void operator () () {initialize();}
             inline void operator () (fastjet::PseudoJet&injet) {run(injet);}
             HardSubStructureFinder(){initialize();}
@@ -1282,6 +1287,7 @@ namespace NewHEPHeaders {
                         constituents.push_back (_constituents[j].user_index());
                     }
                 }
+                MainHiggsTauTagger(); MainHiggsTauTagger(_injet);
             }
         public:
             double                   weight       ;
@@ -1289,6 +1295,7 @@ namespace NewHEPHeaders {
             std::vector        <int> constituents ;
             DetVectors         *     vectors      ;
             fastjet::PseudoJet *     injet        ;
+            MassDropTagger::HardSubStructureFinder MainHiggsTauTagger ;
 
             int    count_tracks   () {
                 int ret = 0;
@@ -1382,12 +1389,10 @@ namespace NewHEPHeaders {
             }
             size_t getdaughter (size_t idx, long pid) {
                 size_t ret = 0;
-
                 if (idx > 0) {
                     idx = recurse (idx);
                     size_t d1 = store[idx].daughter1 ();
                     size_t d2 = store[idx].daughter2 ();
-
                     if ((d1 > 0) || (d2 > 0)) {
                         if (d2 > d1)
                             for (size_t i = d1; (i >= d1) && (i <= d2) && (i > 0); i++) {
@@ -1522,24 +1527,18 @@ namespace NewHEPHeaders {
             }
             void   DecideLeptJet () {
                 for (size_t i = 0; i < AllParticles.size (); i++) {
-                    if ((AllParticles[i].pt () > 15)
-                        && (AllParticles[i].charge != 0)) {
+                    if ((AllParticles[i].pt () > 15) && (AllParticles[i].charge != 0)) {
                         if (AllParticles[i].M_fraction > 0.9) {
                             if (calciso (i, 0.3) < (0.3 * AllParticles[i].pt ())) {
                                 Muons.push_back (NewHEPHeaders::vector4 (AllParticles[i][0], AllParticles[i][1], AllParticles[i][2], AllParticles[i][3]));
-                            } else {
-                                ToJets.push_back (AllParticles[i]);
-                            }
+                            } else { ToJets.push_back (AllParticles[i]); }
                         } else if (AllParticles[i].E_fraction > 0.9) {
                             if (calciso (i, 0.3) < (0.3 * AllParticles[i].pt ())) {
                                 Electrons.push_back (NewHEPHeaders::vector4 (AllParticles[i][0], AllParticles[i][1], AllParticles[i][2], AllParticles[i][3]));
-                            } else {
-                                ToJets.push_back (AllParticles[i]);
-                            }
+                            } else { ToJets.push_back (AllParticles[i]); }
                         }
-                        } else {
-                            ToJets.push_back (AllParticles[i]);
-                        }
+
+                    } else { ToJets.push_back (AllParticles[i]); }
                 }
             }
             void   ClusterJets   () {
@@ -1552,7 +1551,7 @@ namespace NewHEPHeaders {
                 }
                 if (jetvectors.size () > 0) {
                     clust_seq = new fastjet::ClusterSequence (jetvectors, jet_def);
-                    inclusive_jets = sorted_by_pt (clust_seq->inclusive_jets (20.0));
+                    inclusive_jets = sorted_by_pt (clust_seq->inclusive_jets (100.0));
                     for (size_t i = 0; i < inclusive_jets.size (); i++) {
                         JetContainer tmp (ToJets, inclusive_jets[i]);
                         tmp.weight = weight;
@@ -1578,9 +1577,7 @@ namespace NewHEPHeaders {
                                 tmpvector.M_fraction = 1.0;
                             } else if (CPPFileIO::mymod (indata.EFlowTrack_PID[i]) == PID::ELECTRON) {
                                 tmpvector.E_fraction = 1.0;
-                            } else {
-                                tmpvector.H_fraction = 1.0;
-                            }
+                            } else { tmpvector.H_fraction = 1.0; }
                         }
                     }
                     AllParticles.push_back (tmpvector);
@@ -1611,7 +1608,7 @@ namespace NewHEPHeaders {
                             tmpvector[0] = tmp.Px ();
                             tmpvector[1] = tmp.Py ();
                             tmpvector[2] = tmp.Pz ();
-                            tmpvector[3] = tmp.E ();
+                            tmpvector[3] = tmp.E  ();
                         }
                         /* Set charge and type: */  {
                             tmpvector.charge = 0;

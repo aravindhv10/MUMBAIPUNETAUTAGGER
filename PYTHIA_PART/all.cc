@@ -106,7 +106,11 @@ class Analyzer {
 private:
     TH1F MassHist ;
     inline void ProcessData (NewHEPHeaders::DELPHES_DETDATA::FullDelphesContainer&indata) {
-        if(indata.taujets.size()>0){MassHist.Fill(indata.taujets[0]->m());}
+        if(indata.detinfo.jets.size()>0) {
+            if(indata.detinfo.jets[0].MainHiggsTauTagger.HiggsTagged){
+                MassHist.Fill(indata.detinfo.jets[0].MainHiggsTauTagger.filteredjetmass);
+            }
+        }
     }
 public:
     template <typename T> inline void operator () (T&intree) {
