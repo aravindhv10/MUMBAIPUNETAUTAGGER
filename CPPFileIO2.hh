@@ -1124,6 +1124,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         AdaMax(){BetaT[0]=1.0;BetaT[1]=1.0;}
         ~AdaMax(){}
     };
+
     template <typename T,typename T2> class Adamize       {
     private:
         T2 * tgt ;
@@ -1172,6 +1173,68 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         Adamize(){BetaT[0]=1.0;BetaT[1]=1.0;}
         ~Adamize(){}
     };
+
+    template <typename T,typename T2> class AdaReg        {
+    private:
+        T2 * tgt ;
+        T2   M, V ;
+        T2   Mhat, Vhat ;
+        T2   Changes  ;
+        T2   ChangesM ;
+        T    BetaT[2] ;
+
+        inline void ZeroAll(){M.ZeroAll();V.ZeroAll();Mhat.ZeroAll();Vhat.ZeroAll();Changes.ZeroAll();ChangesM.ZeroAll();}
+        inline void work_slave1(MyMatrix<T>&other){other.resize(tgt->sizeY(),tgt->sizeX());other.ZeroAll();}
+        inline void work_slave1(MyVector<T>&other){other.resize(tgt->size());other.ZeroAll();}
+        inline void MultiplyAssign(T2&Dst,T2&Src,T val){for(size_t i=0;i<Dst.size();i++){Dst[i]=Src[i]*val;}}
+        inline void AdamAssign(T2&m,T2&v,T eta,const T eps) {
+            for(size_t i=0;i<tgt->size();i++){
+                float rate1 = eta * CPPFileIO::mymod(Changes[i]) / ChangesM[i] ;
+                float rate2 = m[i] / (sqrt(v[i])+eps) ;
+                tgt[0][i] = tgt[0][i] - (rate1*rate2) ;
+            }
+        }
+        inline void addup(size_t y, size_t x, T val) {
+            Changes(y,x)  = Changes(y,x)  + val                   ;
+            ChangesM(y,x) = ChangesM(y,x) + CPPFileIO::mymod(val) ;
+        }
+        inline void addup(size_t y, T val) {
+            Changes[y]  = Changes[y]  + val                   ;
+            ChangesM[y] = ChangesM[y] + CPPFileIO::mymod(val) ;
+        }
+        inline void assign (T2&_tgt) {
+            tgt = & (_tgt) ;
+            work_slave1(M); work_slave1(Mhat);
+            work_slave1(V); work_slave1(Vhat);
+            work_slave1(Changes); work_slave1(ChangesM);
+            ZeroAll();
+        }
+        inline void apply (T eta) {
+            const T eps = (T)epsG ;
+            for (size_t i=0;i<Changes.size();i++) {
+                M[i]=(M[i]*Beta[0])+((1-Beta[0])*Changes[i]);
+                V[i]=(V[i]*Beta[1])+((1-Beta[1])*Changes[i]*Changes[i]);
+            }
+            BetaT[0]=BetaT[0]*Beta[0];
+            BetaT[1]=BetaT[1]*Beta[1];
+            MultiplyAssign(Mhat,M,(T)1.0/(1.0-BetaT[0]));
+            MultiplyAssign(Vhat,V,(T)1.0/(1.0-BetaT[1]));
+            AdamAssign(Mhat,Vhat,eta,eps);
+            Changes.ZeroAll(); ChangesM.ZeroAll();
+        }
+    public:
+        inline size_t size  () { return tgt->size  () ; }
+        inline size_t sizeX () { return tgt->sizeX () ; }
+        inline size_t sizeY () { return tgt->sizeY () ; }
+        inline void operator () (T2&_tgt) {assign(_tgt);}
+        inline void operator () (T eta) {apply(eta);}
+        inline void operator () (size_t y,size_t x,T val) {addup(y,x,val);}
+        inline void operator () (size_t y,T val) {addup(y,val);}
+        inline void operator () () {ZeroAll();}
+        AdaReg(){BetaT[0]=1.0;BetaT[1]=1.0;}
+        ~AdaReg(){}
+    };
+
     template <typename T,typename T2> class MomentumDelta {
     private:
         T2 * tgt ;
@@ -1378,6 +1441,8 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
     typedef Activate_ID      <float>                                   GoodActivate_ID         ;
     typedef SoftLRU          <float>                                   GoodSoftLRU             ;
 
+    typedef AdaReg           <float,GoodVector>                        GoodAdaRegVector        ;
+    typedef AdaReg           <float,GoodMatrix>                        GoodAdaRegMatrix        ;
     typedef AdaMax           <float,GoodVector>                        GoodAdaMaxVector        ;
     typedef AdaMax           <float,GoodMatrix>                        GoodAdaMaxMatrix        ;
     typedef Adamize          <float,GoodVector>                        GoodAdamizeVector       ;
@@ -1385,7 +1450,9 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
     typedef MomentumDelta    <float,GoodVector>                        GoodMomentumDeltaVector ;
     typedef MomentumDelta    <float,GoodMatrix>                        GoodMomentumDeltaMatrix ;
 
-    typedef FCNN             <float,GoodAdaMaxMatrix,GoodAdaMaxVector> GoodFCNN                ;
+    //typedef FCNN             <float,GoodAdaMaxMatrix,GoodAdaMaxVector>   GoodFCNN              ;
+    //typedef FCNN             <float,GoodAdamizeMatrix,GoodAdamizeVector> GoodFCNN              ;
+    typedef FCNN             <float,GoodAdaRegMatrix,GoodAdaRegVector> GoodFCNN              ;
 } //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

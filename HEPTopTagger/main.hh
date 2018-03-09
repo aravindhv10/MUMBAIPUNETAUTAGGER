@@ -9,6 +9,7 @@
 #include "Nsubjettiness.hh"
 #include "QHTT.hh"
 #include "WinnerTakeAllRecombiner.hh"
+#include "ShowerDeconstruction.hh"
 //  Nsubjettiness Package
 //  Questions/Comments?  jthaler@jthaler.net
 //
