@@ -1,6 +1,6 @@
 #include "./all.cc"
 
 int main () {
-    Generator slave ; slave.GenerateHiggs();
+    Generator slave ; slave.GenerateZ();
     return 0;
 }

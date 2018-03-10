@@ -1,108 +1,92 @@
 #include "./NewHEPHeaders4.hh"
-class GenerateHiggs {
+const size_t MemTotal = 16321488 ;
+const size_t processor = 7 ;
+class Generator {
 private:
-    int generate ( int ThID ) {
-        Pythia8::Pythia pythia ; /**/ {
-            /* The random number part: */ {
-                pythia.readString("Random:setSeed = on");
-                char tmp[256];
-                sprintf(tmp,"Random:seed = %d",ThID);
+    inline void MakeStruct ( int ThID ) {
+        char tmp[256]; sprintf(tmp,"hepmc/%d",ThID);
+        mkdir("hepmc",0755); mkdir(tmp,0755);
+        sprintf(tmp,"hepmc/%d/hepmc.fifo",ThID);
+        mkfifo(tmp,(mode_t)0755);
+    }
+    inline void RunDelphes ( int ThID ) {
+        char tmp[256] ;
+        sprintf(tmp,"%d",ThID);
+        execl("./RunDelphes","./RunDelphes",tmp,NULL);
+    }
+    inline void generate ( int ThID , Pythia8::Pythia&pythia ) {
+        char tmp[1024] ;
+        /* Common Phase Space part: */ {
+            if(pthatmin>0){
+                char tmp[1024]; sprintf(tmp,"PhaseSpace:pTHatMin = %ld",pthatmin);
                 pythia.readString(tmp);
             }
-            /* The event part: */ {
-                pythia.readString("HiggsSM:ffbar2HZ = on");
-                pythia.readString("PhaseSpace:pTHatMin = 500");
-            }
-            /* The decay part: */ {
-                pythia.readString("15:onMode = off");
-                pythia.readString("15:onIfAny = 111 211");
+        }
+        /* The random number part: */ {
+            pythia.readString("Random:setSeed = on");
+            sprintf(tmp,"Random:seed = %d",ThID);
+            pythia.readString(tmp);
+        }
+        /* The Common decay part: */ {
+            pythia.readString("15:onMode = off");
+            pythia.readString("15:onIfAny = 111 211");
+        }
+        pythia.init();
+        sprintf(tmp,"./hepmc/%d/hepmc.fifo",ThID);
+        NewHEPHeaders::WriteHepmc2Fifo writer(tmp);
+        for(size_t i=0;i<10000;i++) if (pythia.next()) {writer(pythia);}
+    }
+    inline int GenSim ( int ThID , Pythia8::Pythia&pythia ) {
+        MakeStruct(ThID); CPPFileIO::ForkMe forker ;
+        if(forker.InKid()) {generate(ThID,pythia);}
+        if(forker.InKid()) {RunDelphes(ThID);}
+        return 0;
+    }
+    inline void GenerateHiggs ( int ThID ) {
+        Pythia8::Pythia pythia ; /* Configure pythia: */ {
+            pythia.readString("HiggsSM:ffbar2HZ = on");
+            /* The Common decay part: */ {
                 pythia.readString("23:onMode = off");
                 pythia.readString("23:onIfAny = 12");
                 pythia.readString("25:onMode = off");
                 pythia.readString("25:onIfAny = 15");
             }
-            pythia.init();
         }
-        char tmp[1024] ;
-        sprintf(tmp,"./hepmc/%d/hepmc.fifo",ThID);
-        NewHEPHeaders::WriteHepmc2Fifo writer(tmp);
-        for(size_t i=0;i<10000;i++) if (pythia.next()) {writer(pythia);}
-        return 0;
+        GenSim(ThID,pythia);
     }
-    int RunDelphes ( int ThID ) {
-        char tmp[256] ;
-        sprintf(tmp,"%d",ThID);
-        execl("./RunDelphes","./RunDelphes",tmp,NULL);
-        return 0;
-    }
-public:
-    int GenSim ( int ThID ) {
-        /* Create the directory structure: */ {
-            char tmp[256]; sprintf(tmp,"hepmc/%d",ThID);
-            mkdir("hepmc",0755); mkdir(tmp,0755);
-            sprintf(tmp,"hepmc/%d/hepmc.fifo",ThID);
-            mkfifo(tmp,(mode_t)0755);
+    inline void GenerateQCD ( int ThID ) {
+        Pythia8::Pythia pythia ; /* Configure pythia: */ {
+            pythia.readString("HardQCD:all = on");
         }
-        CPPFileIO::ForkMe forker ;
-        //printf("Now Starting generate...\n");
-        if(forker.InKid()) {generate(ThID);}
-        if(forker.InKid()) {RunDelphes(ThID);}
-        return 0;
+        GenSim(ThID,pythia);
     }
-    GenerateHiggs(){}
-    ~GenerateHiggs(){}
-};
-class GenerateQCD {
-private:
-    int generate ( int ThID ) {
-        Pythia8::Pythia pythia ; /**/ {
-            /* The random number part: */ {
-                pythia.readString("Random:setSeed = on");
-                char tmp[256];
-                sprintf(tmp,"Random:seed = %d",ThID);
-                pythia.readString(tmp);
-            }
-            /* The event part: */ {
-                pythia.readString("HardQCD:all = on");
-                pythia.readString("PhaseSpace:pTHatMin = 500");
-            }
-            /* The decay part: */ {
-                pythia.readString("15:onMode = off");
-                pythia.readString("15:onIfAny = 111 211");
+    inline void GenerateZ ( int ThID ) {
+        Pythia8::Pythia pythia ; /* Configure pythia: */ {
+            pythia.readString("WeakZ0:gmZmode = 2");
+            pythia.readString("WeakBosonAndParton:ffbar2gmZgm = on");
+            /* The Common decay part: */ {
                 pythia.readString("23:onMode = off");
-                pythia.readString("23:onIfAny = 12");
-                pythia.readString("25:onMode = off");
-                pythia.readString("25:onIfAny = 15");
+                pythia.readString("23:onIfAny = 15");
             }
-            pythia.init();
         }
-        char tmp[1024] ;
-        sprintf(tmp,"./hepmc/%d/hepmc.fifo",ThID);
-        NewHEPHeaders::WriteHepmc2Fifo writer(tmp);
-        for(size_t i=0;i<10000;i++) if (pythia.next()) {writer(pythia);}
-        return 0;
-    }
-    int RunDelphes ( int ThID ) {
-        char tmp[256] ;
-        sprintf(tmp,"%d",ThID);
-        execl("./RunDelphes","./RunDelphes",tmp,NULL);
-        return 0;
+        GenSim(ThID,pythia);
     }
 public:
-    int GenSim ( int ThID ) {
-        /* Create the directory structure: */ {
-            char tmp[256]; sprintf(tmp,"hepmc/%d",ThID);
-            mkdir("hepmc",0755); mkdir(tmp,0755);
-            sprintf(tmp,"hepmc/%d/hepmc.fifo",ThID);
-            mkfifo(tmp,(mode_t)0755);
-        }
-        CPPFileIO::ForkMe forker ;
-        if(forker.InKid()) {generate(ThID);}
-        if(forker.InKid()) {RunDelphes(ThID);}
-        return 0;
+    long pthatmin ;
+    inline void GenerateHiggs(){
+        #pragma omp parallel for
+        for(size_t i=1;i<=(processor+1);i++){GenerateHiggs(i);}
     }
-    GenerateQCD(){}
-    ~GenerateQCD(){}
+    inline void GenerateQCD(){
+        #pragma omp parallel for
+        for(size_t i=1;i<=(processor+1);i++){GenerateQCD(i);}
+    }
+    inline void GenerateZ(){
+        #pragma omp parallel for
+        for(size_t i=1;i<=(processor+1);i++){GenerateZ(i);}
+    }
+    Generator  () {pthatmin=-1;}
+    ~Generator () {}
 };
 
 class Analyzer {

@@ -1,0 +1,5 @@
+#!/bin/bash
+cd "$('dirname' '--' "${0}")"
+'grep' '^MemTotal:' '/proc/meminfo' | 'sed' 's@: *@ = @g;s@ kB$@ ;@g;s@^@const size_t @g'
+'grep' '^processor	: ' '/proc/cpuinfo' | 'tail' '-n1' | 'sed' 's@ *: *@ = @g;s@\t@@g;s@$@ ;@g;s@^@const size_t @g'
+exit '0'
