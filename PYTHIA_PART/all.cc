@@ -128,6 +128,15 @@ class AnalyzerZ{
 private:
     TH1F MassHist ;
     template <typename T> inline void ProcessData (T&indata) {
+        NewHEPHeaders::EventData reader ; reader.ReadFromDelphes(indata); reader.prepare();
+        fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0) ;
+        fastjet::ClusterSequence clust_seq_nrmjet(reader.tojets,jet_def_fat_jet);
+        NewHEPHeaders::pseudojets jets = sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0));
+        if(jets.size()>0){
+            NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
+            MassHist.Fill(tagger.filteredjetmass);
+        }
+        return;
         NewHEPHeaders::vector4s taus;
         for(size_t i=0;i<indata.Jet_;i++){
             if(indata.Jet_TauTag[i]==1){

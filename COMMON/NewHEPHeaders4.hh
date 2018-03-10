@@ -1260,6 +1260,7 @@ namespace NewHEPHeaders {
             ~HardSubStructureFinder(){}
         };
     }
+    typedef MassDropTagger::HardSubStructureFinder HardSubStructureFinder;
     namespace DELPHES_DETDATA {
         const size_t BTAG = 1;
         const size_t TAUTAG = 2;

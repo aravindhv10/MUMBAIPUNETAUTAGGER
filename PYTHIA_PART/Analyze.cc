@@ -2,6 +2,6 @@
 #include "unite.hh"
 int main () {
     AnalyzerZ slave ;
-    process_z(slave);
+    process_higgs(slave);
     return 0;
 }

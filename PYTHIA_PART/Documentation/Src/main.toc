@@ -1,7 +1,0 @@
-\select@language {USenglish}
-\contentsline {section}{\numberline {1}Installing Standard Programs:}{1}{section.1}
-\contentsline {subsection}{\numberline {1.1}Installing {\tt HepMC}}{1}{subsection.1.1}
-\contentsline {subsection}{\numberline {1.2}Installing {\tt FastJet}:}{1}{subsection.1.2}
-\contentsline {subsection}{\numberline {1.3}Installing {\tt Pythia8}:}{1}{subsection.1.3}
-\contentsline {subsection}{\numberline {1.4}Installing {\tt Root-6}}{1}{subsection.1.4}
-\contentsline {subsection}{\numberline {1.5}Installing {\tt Delphes}}{2}{subsection.1.5}
