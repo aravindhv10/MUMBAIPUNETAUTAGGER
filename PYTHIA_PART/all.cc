@@ -1,6 +1,8 @@
 #include "./NewHEPHeaders4.hh"
-const size_t MemTotal = 16321488 ;
-const size_t processor = 7 ;
+
+const size_t MemTotal  = 16321488 ;
+const size_t processor = 7        ;
+
 class Generator {
 private:
     inline void MakeStruct ( int ThID ) {
@@ -14,7 +16,7 @@ private:
         sprintf(tmp,"%d",ThID);
         execl("./RunDelphes","./RunDelphes",tmp,NULL);
     }
-    inline void generate ( int ThID , Pythia8::Pythia&pythia ) {
+    inline void generate   ( int ThID , Pythia8::Pythia&pythia ) {
         char tmp[1024] ;
         /* Common Phase Space part: */ {
             if(pthatmin>0){
@@ -44,32 +46,32 @@ private:
     }
     inline void GenerateHiggs ( int ThID ) {
         Pythia8::Pythia pythia ; /* Configure pythia: */ {
-            pythia.readString("HiggsSM:ffbar2HZ = on");
+            pythia.readString ( "HiggsSM:ffbar2HZ = on" ) ;
             /* The Common decay part: */ {
-                pythia.readString("23:onMode = off");
-                pythia.readString("23:onIfAny = 12");
-                pythia.readString("25:onMode = off");
-                pythia.readString("25:onIfAny = 15");
+                pythia.readString ( "23:onMode = off" ) ;
+                pythia.readString ( "23:onIfAny = 12" ) ;
+                pythia.readString ( "25:onMode = off" ) ;
+                pythia.readString ( "25:onIfAny = 15" ) ;
             }
         }
-        GenSim(ThID,pythia);
+        GenSim (ThID,pythia) ;
     }
     inline void GenerateQCD ( int ThID ) {
         Pythia8::Pythia pythia ; /* Configure pythia: */ {
-            pythia.readString("HardQCD:all = on");
+            pythia.readString ( "HardQCD:all = on" ) ;
         }
-        GenSim(ThID,pythia);
+        GenSim (ThID,pythia) ;
     }
     inline void GenerateZ ( int ThID ) {
         Pythia8::Pythia pythia ; /* Configure pythia: */ {
-            pythia.readString("WeakZ0:gmZmode = 2");
-            pythia.readString("WeakBosonAndParton:ffbar2gmZgm = on");
+            pythia.readString ( "WeakZ0:gmZmode = 2"                  ) ;
+            pythia.readString ( "WeakBosonAndParton:ffbar2gmZgm = on" ) ;
             /* The Common decay part: */ {
-                pythia.readString("23:onMode = off");
-                pythia.readString("23:onIfAny = 15");
+                pythia.readString ( "23:onMode = off" ) ;
+                pythia.readString ( "23:onIfAny = 15" ) ;
             }
         }
-        GenSim(ThID,pythia);
+        GenSim (ThID,pythia) ;
     }
 public:
     long pthatmin ;
@@ -88,6 +90,7 @@ public:
     Generator  () {pthatmin=-1;}
     ~Generator () {}
 };
+
 class Analyzer {
 private:
     TH1F MassHist ;
@@ -124,18 +127,74 @@ public:
         C.SaveAs("MassHist.pdf");
     }
 };
+
 class AnalyzerZ{
 private:
     TH1F MassHist ;
     template <typename T> inline void ProcessData (T&indata) {
-        NewHEPHeaders::EventData reader ; reader.ReadFromDelphes(indata); reader.prepare();
-        fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0) ;
-        fastjet::ClusterSequence clust_seq_nrmjet(reader.tojets,jet_def_fat_jet);
-        NewHEPHeaders::pseudojets jets = sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0));
-        if(jets.size()>0){
-            NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
-            MassHist.Fill(tagger.filteredjetmass);
+        if(false){
+            NewHEPHeaders::EventData reader; reader.ReadFromDelphes(indata); reader.prepare();
+            fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
+            fastjet::ClusterSequence clust_seq_nrmjet(reader.tojets,jet_def_fat_jet);
+            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0));
+            if(jets.size()>0){
+                NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
+                MassHist.Fill(tagger.filteredjetmass);
+            }
+        } else if (true) {
+            NewHEPHeaders::DELPHES_DETDATA::FullDelphesContainer reader; reader.ReadFromDelphes(indata);
+            fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
+            fastjet::ClusterSequence clust_seq_nrmjet(reader.detinfo.jetvectors,jet_def_fat_jet);
+            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0));
+            if(jets.size()>0){
+                NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
+                MassHist.Fill(tagger.filteredjetmass);
+            }
+        } else if(false) {
+            NewHEPHeaders::pseudojets jetvectors ;
+            for(size_t i=0;i<indata.Tower_;i++)  {
+                TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                    indata.Tower_ET[i],
+                    indata.Tower_Eta[i],
+                    indata.Tower_Phi[i],
+                    0
+                );
+                fastjet::PseudoJet jetvector(
+                    tmp.Px(),
+                    tmp.Py(),
+                    tmp.Pz(),
+                    tmp.E()
+                );
+                jetvectors.push_back(jetvector);
+            }
+            for(size_t i=0;i<indata.Track_;i++) if(false) {
+                TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                    indata.Track_PT[i],
+                    indata.Track_Eta[i],
+                    indata.Track_Phi[i],
+                    0
+                );
+                fastjet::PseudoJet jetvector(
+                    tmp.Px(),
+                    tmp.Py(),
+                    tmp.Pz(),
+                    tmp.E()
+                );
+                jetvectors.push_back(jetvector);
+            }
+            fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
+            fastjet::ClusterSequence clust_seq_nrmjet(jetvectors,jet_def_fat_jet);
+            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0));
+            if(jets.size()>0){
+                NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
+                MassHist.Fill(tagger.filteredjetmass);
+            }
         }
+        //printf("SIZES: TRACK = %d ; TOWER = %d\n",indata.Track_,indata.Tower_);
+        //printf(
+            //"SIZES: EFTrack = %d ; EFNeutral = %d ; EFPhoton = %d ; JETSIZE = %ld ;\n",
+            //indata.EFlowTrack_,indata.EFlowPhoton_,indata.EFlowNeutralHadron_,reader2.detinfo.jetvectors.size()
+        //);
         return;
         NewHEPHeaders::vector4s taus;
         for(size_t i=0;i<indata.Jet_;i++){
