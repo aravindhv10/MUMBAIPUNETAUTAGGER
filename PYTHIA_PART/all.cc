@@ -88,7 +88,6 @@ public:
     Generator  () {pthatmin=-1;}
     ~Generator () {}
 };
-
 class Analyzer {
 private:
     TH1F MassHist ;
@@ -124,4 +123,43 @@ public:
         MassHist.Draw();
         C.SaveAs("MassHist.pdf");
     }
+};
+class AnalyzerZ{
+private:
+    TH1F MassHist ;
+    template <typename T> inline void ProcessData (T&indata) {
+        NewHEPHeaders::vector4s taus;
+        for(size_t i=0;i<indata.Jet_;i++){
+            if(indata.Jet_TauTag[i]==1){
+                TLorentzVector tmp; /* Read the jet vectors: */ {
+                    tmp.SetPtEtaPhiM (
+                        indata.Jet_PT[i], indata.Jet_Eta[i], indata.Jet_Phi[i], 0
+                    );
+                }
+                NewHEPHeaders::vector4 tmpvector; /* Read it into something better: */ {
+                    tmpvector[0] = tmp.Px () ;
+                    tmpvector[1] = tmp.Py () ;
+                    tmpvector[2] = tmp.Pz () ;
+                    tmpvector[3] = tmp.E  () ;
+                }
+                taus.push_back(tmpvector);
+            }
+        }
+        if(taus.size()>1){MassHist.Fill((taus[0]+taus[1]).m());}
+    }
+public:
+    template <typename T> inline void operator () (T&intree) {
+        if (intree.fChain == 0) {return;}
+        long nentries = intree.fChain->GetEntriesFast();
+        long nbytes = 0, nb = 0;
+        for (long jentry=0;jentry<nentries;jentry++) {
+            long ientry = intree.LoadTree(jentry);
+            if (ientry < 0) {break;}
+            nb = intree.fChain->GetEntry (jentry) ;
+            nbytes = nbytes + nb ;
+            ProcessData(intree);
+        }
+    }
+    AnalyzerZ  () : MassHist("MassHist","MassHist",100,20,160) {}
+    ~AnalyzerZ () { TCanvas C; MassHist.Draw(); C.SaveAs("MassHist.pdf"); }
 };
