@@ -1,1 +1,0 @@
-../COMMON/MyMassDropTagger.cc
