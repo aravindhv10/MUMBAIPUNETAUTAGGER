@@ -36,7 +36,7 @@ private:
         pythia.init();
         sprintf(tmp,"./hepmc/%d/hepmc.fifo",ThID);
         NewHEPHeaders::WriteHepmc2Fifo writer(tmp);
-        for(size_t i=0;i<10000;i++) if (pythia.next()) {writer(pythia);}
+        for(size_t i=0;i<2000;i++) if (pythia.next()) {writer(pythia);}
     }
     inline int GenSim ( int ThID , Pythia8::Pythia&pythia ) {
         MakeStruct(ThID); CPPFileIO::ForkMe forker ;
@@ -91,48 +91,11 @@ public:
     ~Generator () {}
 };
 
-class Analyzer {
-private:
-    TH1F MassHist ;
-    inline void ProcessData (NewHEPHeaders::DELPHES_DETDATA::FullDelphesContainer&indata) {
-        if(indata.detinfo.jets.size()>0) {
-            if(indata.detinfo.jets[0].MainHiggsTauTagger.HiggsTagged){
-                MassHist.Fill(indata.detinfo.jets[0].MainHiggsTauTagger.filteredjetmass);
-                //MassHist.Fill(indata.detinfo.jets[0].MainHiggsTauTagger.prunedmass);
-                NewHEPHeaders::vector4 tmpbuf(indata.detinfo.jets[0]);
-                //if(indata.geninfo.Higgs(tmpbuf)<0.3){printf("Real Jet...\n");}
-                //else{printf("Wrong jet...\n");}
-            }
-        }
-    }
-public:
-    template <typename T> inline void operator () (T&intree) {
-        if (intree.fChain == 0) {return;}
-        long nentries = intree.fChain->GetEntriesFast();
-        long nbytes = 0, nb = 0;
-        for (long jentry=0;jentry<nentries;jentry++) {
-            long ientry = intree.LoadTree(jentry);
-            if (ientry < 0) {break;}
-            nb = intree.fChain->GetEntry (jentry) ;
-            nbytes = nbytes + nb ;
-            NewHEPHeaders::DELPHES_DETDATA::FullDelphesContainer datareader ;
-            datareader.ReadFromDelphes(intree);
-            ProcessData(datareader);
-        }
-    }
-    Analyzer() : MassHist("MassHist","MassHist",100,20,160) {}
-    ~Analyzer() {
-        TCanvas C;
-        MassHist.Draw();
-        C.SaveAs("MassHist.pdf");
-    }
-};
-
-class AnalyzerZ{
+class Analyzer{
 private:
     TH1F MassHist ;
     template <typename T> inline void ProcessData (T&indata) {
-        if(false){
+        if      (false) {
             NewHEPHeaders::EventData reader; reader.ReadFromDelphes(indata); reader.prepare();
             fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
             fastjet::ClusterSequence clust_seq_nrmjet(reader.tojets,jet_def_fat_jet);
@@ -141,7 +104,8 @@ private:
                 NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
                 MassHist.Fill(tagger.filteredjetmass);
             }
-        } else if (true) {
+        }
+        else if (false) {
             NewHEPHeaders::DELPHES_DETDATA::FullDelphesContainer reader; reader.ReadFromDelphes(indata);
             fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
             fastjet::ClusterSequence clust_seq_nrmjet(reader.detinfo.jetvectors,jet_def_fat_jet);
@@ -150,70 +114,134 @@ private:
                 NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
                 MassHist.Fill(tagger.filteredjetmass);
             }
-        } else if(false) {
-            NewHEPHeaders::pseudojets jetvectors ;
-            for(size_t i=0;i<indata.Tower_;i++)  {
-                TLorentzVector tmp; tmp.SetPtEtaPhiM(
-                    indata.Tower_ET[i],
-                    indata.Tower_Eta[i],
-                    indata.Tower_Phi[i],
-                    0
-                );
-                fastjet::PseudoJet jetvector(
-                    tmp.Px(),
-                    tmp.Py(),
-                    tmp.Pz(),
-                    tmp.E()
-                );
-                jetvectors.push_back(jetvector);
+        }
+        else if (true) {
+            NewHEPHeaders::pseudojets jetvectors ; /* The Reading Part: */ {
+                if (true) /* For Debugging purposes: */ {
+                    double separateHT = 0 ; double mergedHT   = 0 ;
+                    for(size_t i=0;i<indata.EFlowTrack_;i++) {separateHT=separateHT+indata.EFlowTrack_PT[i];}
+                    for(size_t i=0;i<indata.EFlowPhoton_;i++) {separateHT=separateHT+indata.EFlowPhoton_ET[i];}
+                    for(size_t i=0;i<indata.EFlowNeutralHadron_;i++) {separateHT=separateHT+indata.EFlowNeutralHadron_ET[i];}
+                    for(size_t i=0;i<indata.EFlowMerged_;i++) {mergedHT=mergedHT+indata.EFlowMerged_ET[i];}
+                    if(false){
+                        printf("SIZES: %d %d %d %d %d %e %e\n",
+                               indata.EFlowMerged_,
+                               indata.EFlowTrack_,
+                               indata.EFlowPhoton_,
+                               indata.EFlowNeutralHadron_,
+                               indata.EFlowTrack_+indata.EFlowNeutralHadron_+indata.EFlowPhoton_,
+                               separateHT,mergedHT
+                        );
+                    }
+
+                    for(size_t i=0;i<indata.EFlowTrack_;i++){
+                        TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                            indata.EFlowTrack_PT[i],
+                            indata.EFlowTrack_Eta[i],
+                            indata.EFlowTrack_Phi[i],
+                            0
+                        );
+                        fastjet::PseudoJet jetvector(tmp.Px(),
+                                                     tmp.Py(),
+                                                     tmp.Pz(),
+                                                     tmp.E());
+                        jetvectors.push_back(jetvector);
+                    }
+                    for(size_t i=0;i<indata.EFlowPhoton_;i++){
+                        TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                            indata.EFlowPhoton_ET[i],
+                            indata.EFlowPhoton_Eta[i],
+                            indata.EFlowPhoton_Phi[i],
+                            0
+                        );
+                        fastjet::PseudoJet jetvector(tmp.Px(),
+                                                     tmp.Py(),
+                                                     tmp.Pz(),
+                                                     tmp.E());
+                        jetvectors.push_back(jetvector);
+                    }
+                    for(size_t i=0;i<indata.EFlowNeutralHadron_;i++){
+                        TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                            indata.EFlowNeutralHadron_ET[i],
+                            indata.EFlowNeutralHadron_Eta[i],
+                            indata.EFlowNeutralHadron_Phi[i],
+                            0
+                        );
+                        fastjet::PseudoJet jetvector(tmp.Px(),
+                                                     tmp.Py(),
+                                                     tmp.Pz(),
+                                                     tmp.E());
+                        jetvectors.push_back(jetvector);
+                    }
+                }
+                if (false) for(size_t i=0;i<indata.Tower_;i++) {
+                    TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                        indata.Tower_ET[i],
+                        indata.Tower_Eta[i],
+                        indata.Tower_Phi[i],
+                        0
+                    );
+                    fastjet::PseudoJet jetvector(tmp.Px(),
+                                                 tmp.Py(),
+                                                 tmp.Pz(),
+                                                 tmp.E());
+                    jetvectors.push_back(jetvector);
+                }
+                if (false) for(size_t i=0;i<indata.Track_;i++) {
+                    TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                        indata.Track_PT[i],
+                        indata.Track_Eta[i],
+                        indata.Track_Phi[i],
+                        0
+                    );
+                    fastjet::PseudoJet jetvector(tmp.Px(),
+                                                 tmp.Py(),
+                                                 tmp.Pz(),
+                                                 tmp.E());
+                    jetvectors.push_back(jetvector);
+                }
+                if (false) for(size_t i=0;i<indata.EFlowMerged_;i++) {
+                    TLorentzVector tmp; tmp.SetPtEtaPhiM(
+                        indata.EFlowMerged_ET[i],
+                        indata.EFlowMerged_Eta[i],
+                        indata.EFlowMerged_Phi[i],
+                        0
+                    );
+                    fastjet::PseudoJet jetvector(tmp.Px(),
+                                                 tmp.Py(),
+                                                 tmp.Pz(),
+                                                 tmp.E());
+                    jetvectors.push_back(jetvector);
+                }
             }
-            for(size_t i=0;i<indata.Track_;i++) if(false) {
-                TLorentzVector tmp; tmp.SetPtEtaPhiM(
-                    indata.Track_PT[i],
-                    indata.Track_Eta[i],
-                    indata.Track_Phi[i],
-                    0
-                );
-                fastjet::PseudoJet jetvector(
-                    tmp.Px(),
-                    tmp.Py(),
-                    tmp.Pz(),
-                    tmp.E()
-                );
-                jetvectors.push_back(jetvector);
-            }
-            fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
-            fastjet::ClusterSequence clust_seq_nrmjet(jetvectors,jet_def_fat_jet);
-            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0));
+            fastjet::JetDefinition   jet_def_fat_jet  (fastjet::cambridge_aachen_algorithm,1.0) ;
+            fastjet::ClusterSequence clust_seq_nrmjet (jetvectors,jet_def_fat_jet)              ;
+            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0)) ;
             if(jets.size()>0){
                 NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
                 MassHist.Fill(tagger.filteredjetmass);
             }
         }
-        //printf("SIZES: TRACK = %d ; TOWER = %d\n",indata.Track_,indata.Tower_);
-        //printf(
-            //"SIZES: EFTrack = %d ; EFNeutral = %d ; EFPhoton = %d ; JETSIZE = %ld ;\n",
-            //indata.EFlowTrack_,indata.EFlowPhoton_,indata.EFlowNeutralHadron_,reader2.detinfo.jetvectors.size()
-        //);
-        return;
-        NewHEPHeaders::vector4s taus;
-        for(size_t i=0;i<indata.Jet_;i++){
-            if(indata.Jet_TauTag[i]==1){
-                TLorentzVector tmp; /* Read the jet vectors: */ {
-                    tmp.SetPtEtaPhiM (
-                        indata.Jet_PT[i], indata.Jet_Eta[i], indata.Jet_Phi[i], 0
-                    );
+        else if (false) {
+            NewHEPHeaders::vector4s taus;
+            for(size_t i=0;i<indata.Jet_;i++){
+                if(indata.Jet_TauTag[i]==1){
+                    TLorentzVector tmp; /* Read the jet vectors: */ {
+                        tmp.SetPtEtaPhiM (
+                            indata.Jet_PT[i], indata.Jet_Eta[i], indata.Jet_Phi[i], 0
+                        );
+                    }
+                    NewHEPHeaders::vector4 tmpvector; /* Read it into something better: */ {
+                        tmpvector[0] = tmp.Px () ;
+                        tmpvector[1] = tmp.Py () ;
+                        tmpvector[2] = tmp.Pz () ;
+                        tmpvector[3] = tmp.E  () ;
+                    }
+                    taus.push_back(tmpvector);
                 }
-                NewHEPHeaders::vector4 tmpvector; /* Read it into something better: */ {
-                    tmpvector[0] = tmp.Px () ;
-                    tmpvector[1] = tmp.Py () ;
-                    tmpvector[2] = tmp.Pz () ;
-                    tmpvector[3] = tmp.E  () ;
-                }
-                taus.push_back(tmpvector);
             }
+            if(taus.size()>1){MassHist.Fill((taus[0]+taus[1]).m());}
         }
-        if(taus.size()>1){MassHist.Fill((taus[0]+taus[1]).m());}
     }
 public:
     template <typename T> inline void operator () (T&intree) {
@@ -228,6 +256,6 @@ public:
             ProcessData(intree);
         }
     }
-    AnalyzerZ  () : MassHist("MassHist","MassHist",100,20,160) {}
-    ~AnalyzerZ () { TCanvas C; MassHist.Draw(); C.SaveAs("MassHist.pdf"); }
+    Analyzer  () : MassHist("MassHist","MassHist",100,20,160) {}
+    ~Analyzer () { TCanvas C; MassHist.Draw(); C.SaveAs("MassHist.pdf"); }
 };

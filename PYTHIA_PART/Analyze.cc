@@ -1,7 +1,7 @@
 #include "all.cc"
 #include "unite.hh"
 int main () {
-    AnalyzerZ slave ;
-    process_higgs(slave);
+    Analyzer slave ;
+    process_new_higgs(slave);
     return 0;
 }
