@@ -7,3 +7,13 @@ chmod +x './herwig-bootstrap'\\
 './herwig-bootstrap' './HerwigInstall'
 }\\
 This will install {\tt Herwig} to the location `{\tt ./HerwigInstall}' along with all of it's dependencies ({\tt boost}, {\tt fastjet}, {\tt HepMC}, etc). Full instructions for using this script is found in \url{https://herwig.hepforge.org/tutorials/installation/bootstrap.html}
+
+\section{Generating events:}
+The quickest way I could find to generate events in {\tt Herwig} was by generating parton level events in {\tt MadGraph} and shower using {\tt Herwig} (I also got suggestions to adopt similar method for {\tt Pythia} as this nicely isolates matrix element generation from showering and our main aim is the study effect of different showering and hadronization techniques on our jet substructure algorithms). An example {\tt Herwig} input file is shown in ``{\tt LHE.in}'', this file configures {\tt herwig} to shower the file ``{\tt unweighted\_events.lhe}'' and write out the events in the form of {\tt HepMC} which can be read by {\tt Delphes}.
+
+The LHE input file ``{\tt unweighted\_events.lhe}'' was generate using madgraph with:\\
+{\tt
+generate p p > z h\\
+output zh
+}
+In the zh/cards, edit the madspin default card to force decay h to tau and z to neutrinos as in pythia case, then set the minimum pt for heavy particles to be the desired value ($\sim 500$ GeV) and run madgraph with madspin.
