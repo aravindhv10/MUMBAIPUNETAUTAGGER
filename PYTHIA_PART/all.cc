@@ -115,7 +115,7 @@ private:
                 MassHist.Fill(tagger.filteredjetmass);
             }
         }
-        else if (true) {
+        else if (false) {
             NewHEPHeaders::pseudojets jetvectors ; /* The Reading Part: */ {
                 if (true) /* For Debugging purposes: */ {
                     double separateHT = 0 ; double mergedHT   = 0 ;
@@ -133,7 +133,6 @@ private:
                                separateHT,mergedHT
                         );
                     }
-
                     for(size_t i=0;i<indata.EFlowTrack_;i++){
                         TLorentzVector tmp; tmp.SetPtEtaPhiM(
                             indata.EFlowTrack_PT[i],
@@ -216,13 +215,13 @@ private:
             }
             fastjet::JetDefinition   jet_def_fat_jet  (fastjet::cambridge_aachen_algorithm,1.0) ;
             fastjet::ClusterSequence clust_seq_nrmjet (jetvectors,jet_def_fat_jet)              ;
-            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(100.0)) ;
+            NewHEPHeaders::pseudojets jets=sorted_by_pt(clust_seq_nrmjet.inclusive_jets(20.0))  ;
             if(jets.size()>0){
                 NewHEPHeaders::HardSubStructureFinder tagger; tagger(jets[0]);
                 MassHist.Fill(tagger.filteredjetmass);
             }
         }
-        else if (false) {
+        else if (true) {
             NewHEPHeaders::vector4s taus;
             for(size_t i=0;i<indata.Jet_;i++){
                 if(indata.Jet_TauTag[i]==1){
