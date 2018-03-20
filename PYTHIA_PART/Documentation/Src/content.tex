@@ -49,6 +49,28 @@ Delphes does not have any "make install" but all the executables you need are pr
 An important step required is to manually copy "libDelphes.so" to '/usr/local/lib' or any other library search path and also copy all the root dictionaries
 ({\tt 'ClassesDict\_rdict.pcm', 'ExRootAnalysisDict\_rdict.pcm', 'FastJetDict\_rdict.pcm',\\ 'ModulesDict\_rdict.pcm'}) to the root dictionary search path and copy the header files ({\tt 'classes', 'external'} folders) to the default headers search paths ({\tt '/usr/local/include'}).
 
+\section{Introduction to structure of programs:}
+
+Here, the programs are written to make use of few extra header files apart from the standard ({\tt fastjet}, {\tt pythia}, {\tt root}). These are:
+\begin{itemize}
+	\item {\tt CPPFileIO2.hh}: For some standard functions (specific to linux) like making reading and writing to files much easier, multi threading, random number interface, etc $\dots$
+	
+	\item {\tt NewHEPHeaders4.hh}: For some standard functions like writing {\tt pythia} output to {\tt HepMC} ({\tt class WriteHepmc2Fifo}) or showering {\tt LHE} ({\tt void LHA2HEPMC (std::string lhafile, std::string hepmcfile)}) files. This also includes a simple (doesnot use any pointers unlike {\tt pseudojet}), fast, thread safe ({\tt TLorentzVector} is not thread safe) 4 vector implementation ({\tt vector4}).
+	
+	\item {\tt all.cc}: This is the main program for this work, this contains the program for generating events using {\tt pythia}
+	\begin{enumerate}
+		\item {\tt class Generator}: The main class for generating events (all 3 kinds of events). Most of the function of this class should be self apparent from the program except for the 2 functions {\tt void MakeStruct} and {\tt void RunDelphes} which are responsible for creating the directory structure and running {\tt Delphes} respectively.
+		
+		\item {\tt class Analyzer}: This is responsible for analyzing the generated root files from {\tt Delphes}
+	\end{enumerate}
+
+	\item The actual executable parts of the program are in
+	{\tt generate\_higgs.cc} {\tt generate\_qcd.cc}, {\tt generate\_Z.cc} and {\tt Analyze.cc} which include {\tt all.cc} as a header and use the functions to generate and analyze events.
+	
+	\item The programs also require the shell script {\tt "RunDelphes"} to run {\tt Delphes} as the location depends on you installation of {\tt Delphes}.
+	
+\end{itemize}
+
 \section{Generating the events:}
 The event generation is done in {\pyth} and written in {\tt HepMC} formate.
 The example program {\tt main41.cc} inside pythia examples folder contains a sample program to generate events using {\pyth} and write to {\tt HepMC} formate.
@@ -110,7 +132,7 @@ This method is incorporated in the class {\tt NewHEPHeaders::MassDropTagger::Har
 	\begin{center}
 		\includegraphics[width=0.7\textwidth]{MassHistZ2DiTau.pdf}
 		\caption{
-			The Di-$\tau$ invariant mass (obtained by checking for $\tau$-tagged jets in {\tt Delphes}) for the event type Z ($\rightarrow \nu \bar{\nu}$) with no $p_T$ cut on phase space.
+			The Di-$\tau$ invariant mass (obtained by checking for $\tau$-tagged jets in {\tt Delphes}) for the event type Z ($\rightarrow \tau \bar{\tau}$) with no $p_T$ cut on phase space.
 		}
 	\end{center}
 \end{figure}
@@ -119,7 +141,7 @@ This method is incorporated in the class {\tt NewHEPHeaders::MassDropTagger::Har
 	\begin{center}
 		\includegraphics[width=0.7\textwidth]{MassHistZ.pdf}
 		\caption{
-			The invariant mass of the leading (by $p_T$) fat jet ($R=1.0$, $p_T^{j}>100$ GeV) after applying the mass drop check (for 2 prong) and filtering on the fat jet. EFlow vectors are used here for the event type Z ($\rightarrow \nu \bar{\nu}$) with no $p_T$ cut on phase space.
+			The invariant mass of the leading (by $p_T$) fat jet ($R=1.0$, $p_T^{j}>100$ GeV) after applying the mass drop check (for 2 prong) and filtering on the fat jet. EFlow vectors are used here for the event type Z ($\rightarrow \tau \bar{\tau}$) with no $p_T$ cut on phase space.
 		}
 	\end{center}
 \end{figure}

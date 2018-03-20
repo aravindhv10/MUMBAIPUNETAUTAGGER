@@ -16,7 +16,7 @@ private:
         sprintf(tmp,"%d",ThID);
         execl("./RunDelphes","./RunDelphes",tmp,NULL);
     }
-    inline void generate   ( int ThID , Pythia8::Pythia&pythia ) {
+    void generate ( int ThID , Pythia8::Pythia&pythia ) {
         char tmp[1024] ;
         /* Common Phase Space part: */ {
             if(pthatmin>0){
@@ -94,7 +94,7 @@ public:
 class Analyzer{
 private:
     TH1F MassHist ;
-    template <typename T> inline void ProcessData (T&indata) {
+    template <typename T> void ProcessData (T&indata) {
         if      (false) {
             NewHEPHeaders::EventData reader; reader.ReadFromDelphes(indata); reader.prepare();
             fastjet::JetDefinition jet_def_fat_jet(fastjet::cambridge_aachen_algorithm,1.0);
@@ -243,7 +243,7 @@ private:
         }
     }
 public:
-    template <typename T> inline void operator () (T&intree) {
+    template <typename T> void operator () (T&intree) {
         if (intree.fChain == 0) {return;}
         long nentries = intree.fChain->GetEntriesFast();
         long nbytes = 0, nb = 0;
