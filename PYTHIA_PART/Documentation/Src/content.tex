@@ -30,10 +30,15 @@ make -j4\\
 sudo make install\\
 }
 
+Note that you only need to install {\tt Pythia} with {\tt HepMC} at this stage and linking with {\tt fastjet / root} libraries can be achieved when you are compiling other programs, but if you desire you can configure {\tt Pythia} with {\tt --with-fastjet3=<FASTJET\_PATH>} where {\tt <FASTJET\_PATH>} is the location where {\tt fastjet} is installed, by default it is:\\
+{\tt ./configure '--with-hepmc2' '--with-fastjet3=/usr/local'}
+
+Once you have installed {\tt Pythia}, you can explore the examples folder inside the source. Try to compile and run {\tt main41.cc} (this doesnot require {\tt fastjet} and only requires {\tt HepMC}). The program produces hepmc files which can come in handy later to test {\tt Delphes}.
+
 \subsection{Installing {\tt Root-6}}
 Download the binary distribution from \url{https://root.cern.ch/content/release-61206} for the appropriate platform and extract.
 Once you have extracted, you will get a directory "root" wherever you extracted, cd to this directory and run
-{\tt source root/bin/thisroot.sh} (assuming you are using bash shell, otherwise modify accordingly). If you are installing {\tt root} to a non standard directory, it is preferable to put "source root/bin/thisroot.sh" into your {\tt "~/.bashrc"} (or some other initialization file for your shell).
+{\tt source root/bin/thisroot.sh} (assuming you are using bash shell, otherwise modify accordingly). If you are installing {\tt root} to a non standard directory, it is preferable to put "source root/bin/thisroot.sh" into your {\tt "\textasciitilde{}/.bashrc"} (or some other initialization file for your shell).
 
 If this method does not produce a good executable then you should compile root from source, please follow the instructions from the official (\url{https://root.cern.ch/building-root}) site (please do not use non-standard scripts / commands from random forums).
 
@@ -45,9 +50,12 @@ If this method does not produce a good executable then you should compile root f
 	'./configure'\\
 	make -j4\\	
 }\\
+
+This will result in a few executables in the build directory including {\tt DelphesHepMC}, try to figure out how to run this file (the hepmc file produced using {\tt Pythia} is a nice starting point). The configuration files / cards are found in {\tt cards} folder, try running with {\tt delphes\_card\_CMS.tcl} card.
+
 Delphes does not have any "make install" but all the executables you need are produced in the source directory and can be copied anywhere required.
 An important step required is to manually copy "libDelphes.so" to '/usr/local/lib' or any other library search path and also copy all the root dictionaries
-({\tt 'ClassesDict\_rdict.pcm', 'ExRootAnalysisDict\_rdict.pcm', 'FastJetDict\_rdict.pcm',\\ 'ModulesDict\_rdict.pcm'}) to the root dictionary search path and copy the header files ({\tt 'classes', 'external'} folders) to the default headers search paths ({\tt '/usr/local/include'}).
+({\tt 'ClassesDict\_rdict.pcm', 'ExRootAnalysisDict\_rdict.pcm', 'FastJetDict\_rdict.pcm',\\ 'ModulesDict\_rdict.pcm'}) to the root dictionary search path and copy the header files ({\tt 'classes', 'external', 'modules'} folders) to the default headers search paths ({\tt '/usr/local/include'}).
 
 \section{Introduction to structure of programs:}
 
@@ -55,7 +63,7 @@ Here, the programs are written to make use of few extra header files apart from 
 \begin{itemize}
 	\item {\tt CPPFileIO2.hh}: For some standard functions (specific to linux) like making reading and writing to files much easier, multi threading, random number interface, etc $\dots$
 	
-	\item {\tt NewHEPHeaders4.hh}: For some standard functions like writing {\tt pythia} output to {\tt HepMC} ({\tt class WriteHepmc2Fifo}) or showering {\tt LHE} ({\tt void LHA2HEPMC (std::string lhafile, std::string hepmcfile)}) files. This also includes a simple (doesnot use any pointers unlike {\tt pseudojet}), fast, thread safe ({\tt TLorentzVector} is not thread safe) 4 vector implementation ({\tt vector4}).
+	\item {\tt NewHEPHeaders4.hh}: For some standard functions like writing {\tt pythia} output to {\tt HepMC} ({\tt class WriteHepmc2Fifo}) or showering {\tt LHE}\\ ({\tt void LHA2HEPMC (std::string lhafile, std::string hepmcfile)}) files. This also includes a simple (doesnot use any pointers unlike {\tt pseudojet}), fast, thread safe 4 vector implementation ({\tt vector4}).
 	
 	\item {\tt all.cc}: This is the main program for this work, this contains the program for generating events using {\tt pythia}
 	\begin{enumerate}
