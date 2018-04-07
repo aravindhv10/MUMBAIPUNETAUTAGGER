@@ -1,0 +1,75 @@
+\documentclass[12pt,a3paper,titlepage]{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{caption}
+\usepackage{fontenc}
+\usepackage{graphicx}
+\usepackage{ucs}
+\usepackage[utf8]{inputenc}
+\usepackage[left=1.00cm, right=1.00cm, top=1.00cm, bottom=2.00cm]{geometry}
+\usepackage{makeidx}
+\usepackage{multicol}
+\usepackage{pst-all}
+\usepackage{rotating}
+\usepackage{subfigure}
+\usepackage{upgreek}
+\usepackage[USenglish]{babel}
+\usepackage[ref,nobreak]{cite}
+\usepackage{xcolor}
+\usepackage{cancel}
+\usepackage{listings}
+\usepackage[colorlinks=true,pagebackref=true,breaklinks=true]{hyperref}
+
+
+\newcommand {\hsm}          {\ensuremath{H_{\text{SM}}}}
+\newcommand {\chh}          {\ensuremath{H^{\pm}}}
+\newcommand {\ttbar}        {\ensuremath{t \bar{t}}}
+\newcommand {\ttbarbbbar}   {\ensuremath{t \bar{t} b \bar{b}}}
+\newcommand {\signalgbth}   {\ensuremath{g b \rightarrow t \chh}}
+\newcommand {\signalggtbh}  {\ensuremath{g g \rightarrow t b \chh}}
+\newcommand {\nmssmtools}   {\tt NMSSMTools-5.0.0}
+
+\newcommand {\pythia}       {{\tt PYTHIA8-8.2.26} \cite{Sjostrand:2006za}}
+\newcommand {\pyth}         {\tt PYTHIA8}
+
+\newcommand {\madgraph}     {\tt MadGraph\_aMC@NLO-2.5.5 \cite{Alwall:2014hca}}
+\newcommand {\mg}           {\tt MadGraph5}
+
+\newcommand {\fastjet}      {{\tt fastjet-3.3.0} \cite{Cacciari2012}}
+\newcommand {\fj}           {\tt fastjet}
+
+\newcommand {\cernroot}     {{\tt root-6.08.06} \cite{BRUN199781}}
+
+\newcommand {\heptoptagger} {{\tt HEPTopTagger2} \cite{Plehn:2011tg,Kasieczka:2015jma,Plehn:2010st,Plehn:2009rk}}
+\newcommand {\toptag}       {\tt HEPTopTagger}
+
+\newcommand {\cajet}        {{\tt Cambridge/Aachen} (C/A) \cite{Dokshitzer:1997in}}
+\newcommand {\akjet}        {Anti-$k_t$ \cite{1126-6708-2008-04-063}}
+
+
+\definecolor{mGreen}{rgb}{0,0.6,0}
+\definecolor{mGray}{rgb}{0.5,0.5,0.5}
+\definecolor{mPurple}{rgb}{0.58,0,0.82}
+\definecolor{backgroundColour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{CStyle}{
+%	backgroundcolor=\color{backgroundColour},
+	commentstyle=\color{mGreen},
+	keywordstyle=\color{magenta},
+	numberstyle=\tiny\color{mGray},
+	stringstyle=\color{mPurple},
+	basicstyle=\footnotesize,
+	breakatwhitespace=false,
+	breaklines=true,
+	captionpos=b,
+	keepspaces=true,
+	numbers=left,
+	numbersep=5pt,
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	tabsize=2,
+	language=C
+}

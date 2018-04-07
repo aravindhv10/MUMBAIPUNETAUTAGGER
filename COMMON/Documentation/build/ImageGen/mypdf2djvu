@@ -1,0 +1,49 @@
+#!/bin/bash
+NAME="$('echo' "${1}" | 'sed' 's@\.pdf$@\.djvu@g')"
+'pdf2djvu' '-o' "${NAME}" '-d' '1200'  "${1}"
+exit '0'
+
+Usage: 
+ [-o <output-djvu-file>] [options] <pdf-file>
+   pdf2djvu  -i <index-djvu-file>   [options] <pdf-file>
+
+Options: 
+ -i, --indirect=FILE
+ -o, --output=FILE
+     --page-id-prefix=NAME
+     --page-id-template=TEMPLATE
+     --page-title-template=TEMPLATE
+     --no-page-titles
+ -d, --dpi=RESOLUTION
+     --guess-dpi
+     --media-box
+     --page-size=WxH
+     --bg-slices=N,...,N
+     --bg-slices=N+...+N
+     --bg-subsample=N
+     --fg-colors=default
+     --fg-colors=web
+     --fg-colors=black
+     --fg-colors=N
+     --monochrome
+     --loss-level=N
+     --lossy
+     --anti-alias
+     --no-metadata
+     --verbatim-metadata
+     --no-outline
+     --hyperlinks=border-avis
+     --hyperlinks=#RRGGBB
+     --no-hyperlinks
+     --no-text
+     --words
+     --lines
+     --crop-text
+     --no-nfkc
+     --filter-text=COMMAND-LINE
+ -p, --pages=...
+ -v, --verbose
+ -j, --jobs=N
+ -q, --quiet
+ -h, --help
+     --version
