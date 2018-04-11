@@ -76,7 +76,7 @@ class MainAnalyzer {
 private:
     DelphesReader*MainReader;
     std::string delphesfilename;
-    TH1F OutMassHist ;
+    TH1F OutMassHist, nsubjettinesshist1, nsubjettinesshist2, nsubjettinesshist3 ;
     inline void construct(std::string _delphesfilename)
     {delphesfilename=_delphesfilename;MainReader=new DelphesReader(delphesfilename);}
     inline void destroy(){delete MainReader;}
@@ -89,7 +89,7 @@ private:
         NewHEPHeaders::pseudojets antikt_jets=sorted_by_pt(clust_seq.inclusive_jets());
         for (size_t j=0;(j<antikt_jets.size())&&(j<2);j++) if(antikt_jets[j].perp()>200.0) {
             fastjet::PseudoJet&this_jet = antikt_jets[j];
-            if(this_jet.m()>40){OutMassHist.Fill(this_jet.m());}
+
             using namespace fastjet::contrib;
             double beta = 1.0;
             Nsubjettiness         nSub1_beta1(1,   OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
@@ -113,25 +113,54 @@ private:
             double  tau3_beta2 =  nSub3_beta2(this_jet);
             double tau21_beta2 = nSub21_beta2(this_jet);
             double tau32_beta2 = nSub32_beta2(this_jet);
+            if(this_jet.m()>40){
+                OutMassHist.Fill        ( this_jet.m() ) ;
+                nsubjettinesshist1.Fill ( tau1_beta1   ) ;
+                nsubjettinesshist2.Fill ( tau2_beta1   ) ;
+                nsubjettinesshist3.Fill ( tau3_beta1   ) ;
+            }
         }
     }
     inline void Analyze(){
         size_t limit=MainReader[0]();
         for(size_t i=0;i<limit;i++){
-            if((i%100)==0){printf("Analyzing %ld event:\n",i);}
+            if((i%500)==0){printf("Analyzing %ld event:\n",i);}
             Analyze(i);
         }
     }
     inline void AnalyzeNewFile(std::string _delphesfilename){destroy();construct(_delphesfilename);Analyze();}
+    inline void WriteHistograms(){
+        /*OutMassHist*/ {
+            TCanvas C;
+            OutMassHist.Draw("hist");
+            C.SaveAs("OutMassHist.pdf");
+        }
+        /*nsubjettinesshist1*/ {
+            TCanvas C;
+            nsubjettinesshist1.Draw("hist");
+            C.SaveAs("nsubjettinesshist1.pdf");
+        }
+        /*nsubjettinesshist2*/ {
+            TCanvas C;
+            nsubjettinesshist2.Draw("hist");
+            C.SaveAs("nsubjettinesshist2.pdf");
+        }
+        /*nsubjettinesshist3*/ {
+            TCanvas C;
+            nsubjettinesshist3.Draw("hist");
+            C.SaveAs("nsubjettinesshist3.pdf");
+        }
+    }
 public:
     inline void operator()(std::string _delphesfilename){AnalyzeNewFile(_delphesfilename);}
     MainAnalyzer (std::string _delphesfilename):
-    OutMassHist("OutMassHist","OutMassHist",100,40,200)
+    OutMassHist("OutMassHist","OutMassHist",100,40,200),
+    nsubjettinesshist1("nsubjettinesshist1","nsubjettinesshist1",100,-0.1,30.1),
+    nsubjettinesshist2("nsubjettinesshist2","nsubjettinesshist2",100,-0.1,30.1),
+    nsubjettinesshist3("nsubjettinesshist3","nsubjettinesshist3",100,-0.1,30.1)
     {construct(_delphesfilename);Analyze();}
     ~MainAnalyzer(){
         destroy();
-        TCanvas C;
-        OutMassHist.Draw("hist");
-        C.SaveAs("MassHist.pdf");
+        WriteHistograms();
     }
 };

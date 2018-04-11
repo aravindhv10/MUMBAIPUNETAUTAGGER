@@ -20,6 +20,7 @@ cd /Herwig/EventHandlers
 
 ### Disable MPI ###
 set /Herwig/Shower/ShowerHandler:MPIHandler    NULL
+set /Herwig/Shower/SplittingGenerator:ISR No
 ### check https://herwig.hepforge.org/tutorials/faq/shower.html for details ###
 ###################
 
