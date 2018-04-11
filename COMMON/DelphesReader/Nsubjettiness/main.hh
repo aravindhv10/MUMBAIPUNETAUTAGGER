@@ -1,0 +1,8 @@
+#include "AxesDefinition.cc"
+#include "ExtraRecombiners.cc"
+#include "MeasureDefinition.cc"
+#include "Njettiness.cc"
+#include "NjettinessPlugin.cc"
+#include "Nsubjettiness.cc"
+#include "TauComponents.cc"
+#include "XConePlugin.cc"

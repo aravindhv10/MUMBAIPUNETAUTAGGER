@@ -18,6 +18,11 @@
 #include <vector> ///////
 #include <algorithm> ////
 #include <random> ///////
+#include <sstream> //////
+#include <iomanip> //////
+#include <utility> //////
+#include <fstream> //////
+#include <exception> ////
 /////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -896,10 +901,13 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
     const float epsG    = 0.0000001      ;
     const float Beta[3] = {0.9,0.99,0.7} ;
 
-    template <typename T> class MyMatrix ;
-    template <typename T> class Matrix3D ;
+    typedef float TypeFloat ;
 
-    template <typename T> class MyVector {
+
+    template < typename T = TypeFloat > class MyMatrix ;
+    template < typename T = TypeFloat > class Matrix3D ;
+
+    template < typename T = TypeFloat > class MyVector {
     private:
         std::vector <T> store ;
         inline void copyfrom (T*ptr) {memcpy((void*)&(store[0]),(const void*)ptr,(size_t)store.size()*sizeof(T));}
@@ -951,7 +959,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         MyVector(){}
         ~MyVector(){}
     };
-    template <typename T> class MyMatrix {
+    template < typename T             > class MyMatrix {
     private:
         MyVector <T>  store ;
         size_t X, Y;
@@ -978,7 +986,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         MyMatrix(){}
         ~MyMatrix(){}
     };
-    template <typename T> class Matrix3D {
+    template < typename T             > class Matrix3D {
     private:
         MyMatrix <T> store ;
         size_t X, Y, Z;
@@ -1003,7 +1011,11 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         ~Matrix3D(){}
     };
 
-    template <typename T> class Activate_Sigmoid {
+    typedef MyVector <> GoodVector   ;
+    typedef MyMatrix <> GoodMatrix   ;
+    typedef Matrix3D <> GoodMatrix3D ;
+
+    template < typename T = TypeFloat > class Activate_Sigmoid {
     private:
         inline void activate (MyVector<T>&A,MyVector<T>&B) {
             B.resize(A.size());
@@ -1023,7 +1035,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         Activate_Sigmoid  () {}
         ~Activate_Sigmoid () {}
     };
-    template <typename T> class SoftSign         {
+    template < typename T = TypeFloat > class SoftSign         {
     private:
         inline void activate (MyVector<T>&A,MyVector<T>&B) {
             B.resize(A.size());
@@ -1040,7 +1052,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         SoftSign  () {}
         ~SoftSign () {}
     };
-    template <typename T> class Activate_LRU     {
+    template < typename T = TypeFloat > class Activate_LRU     {
     private:
         inline void activate (MyVector<T>&A,MyVector<T>&B) {
             B.resize(A.size());
@@ -1053,7 +1065,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         Activate_LRU  () {}
         ~Activate_LRU () {}
     };
-    template <typename T> class Activate_ID      {
+    template < typename T = TypeFloat > class Activate_ID      {
     private:
         inline void activate (MyVector<T>&A,MyVector<T>&B)
         { B.resize(A.size()); for(size_t x=0;x<A.size();x++) {B(x)=1.0;} }
@@ -1062,7 +1074,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         Activate_ID  () {}
         ~Activate_ID () {}
     };
-    template <typename T> class SoftLRU          {
+    template < typename T = TypeFloat > class SoftLRU          {
     private:
         inline void activate (MyVector<T>&A,MyVector<T>&B) {
             B.resize(A.size());
@@ -1081,7 +1093,13 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         ~SoftLRU () {}
     };
 
-    template <typename T,typename T2> class AdaMax        {
+    typedef Activate_Sigmoid <> GoodActivate_Sigmoid ;
+    typedef SoftSign         <> GoodSoftSign         ;
+    typedef Activate_LRU     <> GoodActivate_LRU     ;
+    typedef Activate_ID      <> GoodActivate_ID      ;
+    typedef SoftLRU          <> GoodSoftLRU          ;
+
+    template < typename T2 , typename T  = TypeFloat > class AdaMax        {
     private:
         T2 * tgt ;
         T2   M, V ;
@@ -1124,8 +1142,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         AdaMax(){BetaT[0]=1.0;BetaT[1]=1.0;}
         ~AdaMax(){}
     };
-
-    template <typename T,typename T2> class Adamize       {
+    template < typename T2 , typename T  = TypeFloat > class Adamize       {
     private:
         T2 * tgt ;
         T2   M, V ;
@@ -1173,8 +1190,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         Adamize(){BetaT[0]=1.0;BetaT[1]=1.0;}
         ~Adamize(){}
     };
-
-    template <typename T,typename T2> class AdaReg        {
+    template < typename T2 , typename T  = TypeFloat > class AdaReg        {
     private:
         T2 * tgt ;
         T2   M, V ;
@@ -1234,8 +1250,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         AdaReg(){BetaT[0]=1.0;BetaT[1]=1.0;}
         ~AdaReg(){}
     };
-
-    template <typename T,typename T2> class MomentumDelta {
+    template < typename T2 , typename T  = TypeFloat > class MomentumDelta {
     private:
         T2 * tgt ;
         T2   vel ;
@@ -1271,7 +1286,16 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         ~MomentumDelta () {}
     };
 
-    template <typename TF, size_t depth> class Parameters {
+    typedef AdaReg        < GoodVector > GoodAdaRegVector        ;
+    typedef AdaReg        < GoodMatrix > GoodAdaRegMatrix        ;
+    typedef AdaMax        < GoodVector > GoodAdaMaxVector        ;
+    typedef AdaMax        < GoodMatrix > GoodAdaMaxMatrix        ;
+    typedef Adamize       < GoodVector > GoodAdamizeVector       ;
+    typedef Adamize       < GoodMatrix > GoodAdamizeMatrix       ;
+    typedef MomentumDelta < GoodVector > GoodMomentumDeltaVector ;
+    typedef MomentumDelta < GoodMatrix > GoodMomentumDeltaMatrix ;
+
+    template < size_t depth , typename TF = TypeFloat > class Parameters {
     private:
         inline void WriteToFile (FILE*F) {
             for(size_t K=0;K<depth;K++) {
@@ -1306,7 +1330,8 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         ~Parameters () {}
     };
 
-    template <typename TF,typename TDW, typename TDB> class FCNN {
+    template < typename TDW = GoodAdaRegMatrix , typename TDB = GoodAdaRegVector , typename TF = TypeFloat >
+    class FCNN {
     private:
         size_t                        depth       ;
         size_t                        count       ;
@@ -1348,7 +1373,7 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
                 Chain.resize  ( depth     ) ;
             }
         }
-        template <size_t T> inline void initialize (Parameters<TF,T>&inpars) {initialize(T);initialize(inpars.weight,inpars.bias);}
+        template <size_t T> inline void initialize (Parameters<T,TF>&inpars) {initialize(T);initialize(inpars.weight,inpars.bias);}
         template <typename T> inline void activate (size_t i,T&Activator){
             Output(i) ( weight[i] , Input(i) , bias[i] ) ;
             Activator ( Output(i) , Diffs(i)           ) ;
@@ -1424,35 +1449,138 @@ namespace NeuralNetworks { /////////////////////////////////////////////////////
         inline void operator () (TF eta) {Apply(eta);}
         inline void operator () (std::string filename) {WriteToFile(filename);}
         inline void operator () (FILE*F) {WriteToFile(F);}
-        template <size_t T> inline void operator () (Parameters<TF,T>&inpars) {initialize(inpars);}
+        template <size_t T> inline void operator () (Parameters<T,TF>&inpars) {initialize(inpars);}
 
-        template <size_t T> FCNN (Parameters<TF,T>&inpars) {initialize(inpars);}
+        template <size_t T> FCNN (Parameters<T,TF>&inpars) {initialize(inpars);}
         FCNN  (size_t _depth=0) {initialize(_depth);}
         ~FCNN ()              {}
     };
 
-    typedef MyVector         <float>                                   GoodVector              ;
-    typedef MyMatrix         <float>                                   GoodMatrix              ;
-    typedef Matrix3D         <float>                                   GoodMatrix3D            ;
+    template < size_t depth = 3 , typename TDW = GoodAdaRegMatrix , typename TDB = GoodAdaRegVector , typename TF = TypeFloat >
+    class FCNN2 {
+    private:
+        size_t          count                ;
+        TF              AvgError             ;
+        TDW             DeltaW [ depth     ] ;
+        TDB             DeltaB [ depth     ] ;
+        MyVector <TF>   Layers [ depth + 1 ] ;
+        MyVector <TF>   Derivs [ depth     ] ;
+        MyVector <TF>   Chain  [ depth     ] ;
+        MyMatrix <TF> * weight               ;
+        MyVector <TF> * bias                 ;
+        MyVector <TF>   TrainDeltas          ;
+        SoftSign <TF>   actsig               ;
+        SoftLRU  <TF>   actlru               ;
+        //Activate_Sigmoid <TF>             actsig      ;
+        //Activate_LRU     <TF>             actlru      ;
 
-    typedef Activate_Sigmoid <float>                                   GoodActivate_Sigmoid    ;
-    typedef SoftSign         <float>                                   GoodSoftSign            ;
-    typedef Activate_LRU     <float>                                   GoodActivate_LRU        ;
-    typedef Activate_ID      <float>                                   GoodActivate_ID         ;
-    typedef SoftLRU          <float>                                   GoodSoftLRU             ;
+        inline MyVector <TF> & Diffs  ( size_t i ) {return Derivs[i];}
+        inline void resize(size_t i){
+            Output(i).resize (weight[i].sizeY()) ;
+            Input(i).resize  (weight[i].sizeX()) ;
+            DeltaW[i](weight[i]); DeltaB[i](bias[i]);
+        }
+        inline void initialize(){
+            /* Initialize default values: */ {
+                count    = 0 ;
+                AvgError = 0 ;
+            }
+        }
+        inline void initialize(MyMatrix<TF>*_weight,MyVector<TF>*_bias){
+            initialize();
+            {weight=_weight;bias=_bias;}
+            for(size_t i=0;i<depth;i++){resize(i);}
+            {TrainDeltas.resize(Output().size());}
+        }
+        inline void initialize (Parameters<depth,TF>&inpars) {initialize(inpars.weight,inpars.bias);}
+        inline void WriteToFile (FILE*F) {
+            for(size_t K=0;K<depth;K++) {
+                for(size_t i=0;i<weight[K].size();i++) {fprintf(F,"weight[%ld][%ld]=%e;",K,i,weight[K][i]);}
+                fprintf(F,"\n");
+                for(size_t i=0;i<bias[K].size();i++) {fprintf(F,"bias[%ld][%ld]=%e;",K,i,bias[K][i]);}
+                fprintf(F,"\n");
+            }
+        }
+        inline void WriteToFile (std::string FileName) {FILE*f=fopen(&(FileName[0]),"w");WriteToFile(f);fclose(f);}
 
-    typedef AdaReg           <float,GoodVector>                        GoodAdaRegVector        ;
-    typedef AdaReg           <float,GoodMatrix>                        GoodAdaRegMatrix        ;
-    typedef AdaMax           <float,GoodVector>                        GoodAdaMaxVector        ;
-    typedef AdaMax           <float,GoodMatrix>                        GoodAdaMaxMatrix        ;
-    typedef Adamize          <float,GoodVector>                        GoodAdamizeVector       ;
-    typedef Adamize          <float,GoodMatrix>                        GoodAdamizeMatrix       ;
-    typedef MomentumDelta    <float,GoodVector>                        GoodMomentumDeltaVector ;
-    typedef MomentumDelta    <float,GoodMatrix>                        GoodMomentumDeltaMatrix ;
+        template <typename T> inline void activate (size_t i,T&Activator){
+            Output(i) ( weight[i] , Input(i) , bias[i] ) ;
+            Activator ( Output(i) , Diffs(i)           ) ;
+        }
+        inline TF P (size_t L, size_t i, size_t j) {return Diffs(L)(i)*weight[L](i,j);}
+        inline void EvalChain(size_t K){
+            if(K<(depth)){
+                if ( K == (depth-1) ) {
+                    Chain[K].resize(weight[K].sizeX()); Chain[K].ZeroAll();
+                    for(size_t i=0;i<weight[K].sizeY();i++)for(size_t m=0;m<weight[K].sizeX();m++)
+                    {Chain[K](m)=Chain[K](m)+(TrainDeltas(i)*P(K,i,m));}
+                } else if ( K < (depth-1) ) {
+                    Chain[K].resize(weight[K].sizeX()); Chain[K].ZeroAll();
+                    for(size_t i=0;i<weight[K].sizeY();i++)for(size_t m=0;m<weight[K].sizeX();m++)
+                    {Chain[K](m)=Chain[K](m)+(Chain[K+1](i)*P(K,i,m));}
+                }
+            }
+            if(K>0){EvalChain(K-1);}
+        }
+        inline TF D (size_t  K, size_t  m, size_t  n){
+            if(K==(depth-1)){return (TrainDeltas(m))*(Diffs(K)(m))*(Input(K)(n));}
+            else if(K<(depth-1)){return (C(K+1,m))*(Diffs(K)(m))*(Input(K)(n));}
+        }
+        inline TF D (size_t K, size_t m){
+            if(K==(depth-1)){return TrainDeltas(m);}
+            else if(K<(depth-1)){return C(K+1,m);}
+        }
+        inline void activate(){
+            for(size_t i=0;i<depth-1;i++){activate(i,actlru);}
+            activate(depth-1,actsig);
+        }
+        inline TF Apply (TF eta) {
+            if(count>0){
+                for(size_t i=0;i<DeltaW.size();i++){DeltaW[i]((TF)eta/count);}
+                for(size_t i=0;i<DeltaB.size();i++){DeltaB[i]((TF)eta/count);}
+            }
+            TF ret = AvgError ; count = 0 ; AvgError = 0 ;
+            return ret ;
+        }
+        inline void Train(size_t K, size_t m, size_t n) {DeltaW[K](m,n,D(K,m,n));}
+        inline void Train(size_t K, size_t m)           {DeltaB[K](m,D(K,m));}
+        inline void Train(size_t K=0){
+            if(K<depth) {
+                for(size_t y=0;y<DeltaW[K].sizeY();y++)for(size_t x=0;x<DeltaW[K].sizeX();x++){Train(K,y,x);}
+                for(size_t x=0;x<DeltaB[K].size();x++){Train(K,x);}
+                Train(K+1);
+            }
+        }
+        inline void Train (MyVector<TF>&answers) {TrainDeltas.subtract(Output(),answers);TrainOnDelta();}
 
-    //typedef FCNN             <float,GoodAdaMaxMatrix,GoodAdaMaxVector>   GoodFCNN              ;
-    //typedef FCNN             <float,GoodAdamizeMatrix,GoodAdamizeVector> GoodFCNN              ;
-    typedef FCNN             <float,GoodAdaRegMatrix,GoodAdaRegVector> GoodFCNN              ;
+    public:
+        inline void TrainOnDelta      (            )
+        {EvalChain();Train();count++;AvgError=AvgError+TrainDeltas.L1Norm();}
+
+        inline void EvalChain         (                    ) { EvalChain          (depth-1)    ; }
+        inline MyVector <TF> & GetD   (                    ) { return TrainDeltas              ; }
+        inline TF            & GetD   ( size_t i           ) { return TrainDeltas ( i     )    ; }
+        inline MyVector <TF> & Input  ( size_t i=0         ) { return Layers      [ i     ]    ; }
+        inline MyVector <TF> & Output ( size_t i           ) { return Layers      [ i + 1 ]    ; }
+        inline MyVector <TF> & Output (                    ) { return Layers      [ depth ]    ; }
+        inline MyVector <TF> & C      ( size_t L           ) { return Chain       [ L     ]    ; }
+        inline TF            & C      ( size_t L, size_t j ) { return Chain       [ L     ](j) ; }
+
+        inline void operator () () {activate();}
+        inline void operator () (MyMatrix<TF>*_weight,MyVector<TF>*_bias) {initialize(_weight,_bias);}
+        inline void operator () (MyVector<TF>&answers) {Train(answers);}
+        inline void operator () (TF eta) {Apply(eta);}
+        inline void operator () (std::string filename) {WriteToFile(filename);}
+        inline void operator () (FILE*F) {WriteToFile(F);}
+        inline void operator () (Parameters<depth,TF>&inpars) {initialize(inpars);}
+
+        template <size_t T> FCNN2 (Parameters<T,TF>&inpars) {initialize(inpars);}
+        FCNN2  (size_t _depth=0) {initialize(_depth);}
+        ~FCNN2 ()              {}
+    };
+
+
+    typedef FCNN <> GoodFCNN              ;
 } //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
