@@ -7,11 +7,11 @@ read snippets/PPCollider.in
 # Technical parameters for this run
 ##################################################
 cd /Herwig/Generators
-set EventGenerator:NumberOfEvents 10000000
+set EventGenerator:NumberOfEvents 10000
 set EventGenerator:RandomNumberGenerator:Seed 31122001
 set EventGenerator:DebugLevel 0
 set EventGenerator:PrintEvent 10
-set EventGenerator:MaxErrors 10000
+#set EventGenerator:MaxErrors 10000
 ##################################################
 #   Create the Les Houches file handler and reader
 ##################################################
@@ -52,7 +52,7 @@ set /Herwig/Partons/PPExtractor:SecondPDF /Herwig/Partons/LHAPDF
 # this is STRONGLY DISCOURAGED without retuning the MPI parameters
 # create the reader and set cuts
 create ThePEG::LesHouchesFileReader LesHouchesReader
-set LesHouchesReader:FileName unweighted_events.lhe
+set LesHouchesReader:FileName in.lhe
  #(the file can be compressed (gziped,bziped))
 set LesHouchesReader:AllowedToReOpen No
 set LesHouchesReader:InitPDFs 0
@@ -92,7 +92,7 @@ set /Herwig/Shower/GammatoQQbarSplitFn:AngularOrdered Yes
 
 
 read snippets/HepMC.in
-set /Herwig/Analysis/HepMC:PrintEvent 100
+set /Herwig/Analysis/HepMC:PrintEvent 10000
 
 
 

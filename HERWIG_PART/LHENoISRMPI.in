@@ -20,7 +20,7 @@ cd /Herwig/EventHandlers
 
 ### Disable MPI ###
 set /Herwig/Shower/ShowerHandler:MPIHandler    NULL
-set /Herwig/Shower/SplittingGenerator:ISR No
+#set /Herwig/Shower/SplittingGenerator:ISR No
 ### check https://herwig.hepforge.org/tutorials/faq/shower.html for details ###
 ###################
 
@@ -60,7 +60,7 @@ set /Herwig/Partons/PPExtractor:SecondPDF /Herwig/Partons/LHAPDF
 # this is STRONGLY DISCOURAGED without retuning the MPI parameters
 # create the reader and set cuts
 create ThePEG::LesHouchesFileReader LesHouchesReader
-set LesHouchesReader:FileName unweighted_events.lhe
+set LesHouchesReader:FileName in.lhe
  #(the file can be compressed (gziped,bziped))
 set LesHouchesReader:AllowedToReOpen No
 set LesHouchesReader:InitPDFs 0
@@ -100,7 +100,7 @@ set /Herwig/Shower/GammatoQQbarSplitFn:AngularOrdered Yes
 
 
 read snippets/HepMC.in
-set /Herwig/Analysis/HepMC:PrintEvent 100
+set /Herwig/Analysis/HepMC:PrintEvent 10000
 
 
 
