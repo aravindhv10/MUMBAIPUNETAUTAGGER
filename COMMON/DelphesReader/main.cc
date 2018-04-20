@@ -17,8 +17,6 @@ int BenchmarkVectors () {
             }
         }
     }
-
-
     return 0;
 
     for(double x=-5.0;x<5.0;x=x+0.15){
@@ -31,17 +29,52 @@ int BenchmarkVectors () {
             }
         }
     }
-
     return 0;
 }
 
-inline void ReadRootFilesAndAnalyze () {
-    std::string filename("H1.root");
-    MainAnalyzer a(filename);
-    a("H2.root");a("H3.root");
+inline void ReadRootFilesAndAnalyzeWithMPI () {
+    MainAnalyzer a("GraphsWithMPI");
+    a("./BoostedZ/4/out.root");
+    a("./BoostedZ/1/out.root");
+    a("./BoostedZ/3/out.root");
+    a("./BoostedZ/2/out.root");
+    a("./BoostedZ/15/out.root");
+    a("./BoostedZ/9/out.root");
+    a("./BoostedZ/5/out.root");
+    a("./BoostedZ/13/out.root");
+    a("./BoostedZ/12/out.root");
+    a("./BoostedZ/7/out.root");
+    a("./BoostedZ/8/out.root");
+    a("./BoostedZ/10/out.root");
+    a("./BoostedZ/6/out.root");
+    a("./BoostedZ/11/out.root");
+    a("./BoostedZ/16/out.root");
+    a("./BoostedZ/14/out.root");
+}
+
+inline void ReadRootFilesAndAnalyzeNoMPI () {
+    MainAnalyzer a("GraphsNoMPI");
+    a("./BoostedZ/4/NoISRout.root");
+    a("./BoostedZ/1/NoISRout.root");
+    a("./BoostedZ/3/NoISRout.root");
+    a("./BoostedZ/2/NoISRout.root");
+    a("./BoostedZ/15/NoISRout.root");
+    a("./BoostedZ/9/NoISRout.root");
+    a("./BoostedZ/5/NoISRout.root");
+    a("./BoostedZ/13/NoISRout.root");
+    a("./BoostedZ/12/NoISRout.root");
+    a("./BoostedZ/7/NoISRout.root");
+    a("./BoostedZ/8/NoISRout.root");
+    a("./BoostedZ/10/NoISRout.root");
+    a("./BoostedZ/6/NoISRout.root");
+    a("./BoostedZ/11/NoISRout.root");
+    a("./BoostedZ/16/NoISRout.root");
+    a("./BoostedZ/14/NoISRout.root");
 }
 
 int main () {
-    ReadRootFilesAndAnalyze ();
+    CPPFileIO::ForkMe forker ;
+    if(forker.InKid()){ReadRootFilesAndAnalyzeWithMPI();}
+    if(forker.InKid()){ReadRootFilesAndAnalyzeNoMPI();}
     return 0;
 }
