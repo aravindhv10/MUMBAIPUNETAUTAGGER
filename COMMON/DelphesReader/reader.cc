@@ -116,7 +116,7 @@ private:
     TClonesArray              * EFlowTrack         ;
     TClonesArray              * EFlowPhoton        ;
     TClonesArray              * EFlowNeutralHadron ;
-    NewHEPHeaders::pseudojets   jetvectors         ;
+
     inline NewHEPHeaders::pseudojets & Analyze (size_t entry) {
         treeReader->ReadEntry (entry) ; jetvectors.clear () ;
         size_t limit_EFlowTrack         = EFlowTrack->GetEntries         () ;
@@ -124,20 +124,22 @@ private:
         size_t limit_EFlowNeutralHadron = EFlowNeutralHadron->GetEntries () ;
         for(size_t i=0;i<limit_EFlowTrack;i++){
             Track*tmp=(Track*)EFlowTrack->At(i);
-            NewHEPHeaders::VECTORS::lorentz4vector<>tmp2;
+            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
             jetvectors.push_back(tmp2.getpseudojet());
         }
         for(size_t i=0;i<limit_EFlowPhoton;i++){
             Tower*tmp=(Tower*)EFlowPhoton->At(i);
-            NewHEPHeaders::VECTORS::lorentz4vector<>tmp2;
+            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
+            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad; tmp2.Emu=0;
             jetvectors.push_back(tmp2.getpseudojet());
         }
         for(size_t i=0;i<limit_EFlowNeutralHadron;i++){
             Tower*tmp=(Tower*)EFlowNeutralHadron->At(i);
-            NewHEPHeaders::VECTORS::lorentz4vector<>tmp2;
+            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
+            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad; tmp2.Emu=0;
             jetvectors.push_back(tmp2.getpseudojet());
         }
         return jetvectors;
@@ -152,6 +154,8 @@ private:
     }
     inline void destroy () {delete treeReader;}
 public:
+    NewHEPHeaders::pseudojets jetvectors ;
+    std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> Vectors ;
     inline NewHEPHeaders::pseudojets & operator () (size_t entry) {return Analyze(entry);}
     inline size_t operator () () {return numberOfEntries;}
     DelphesReader (std::string&_ListOfFiles) : ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}

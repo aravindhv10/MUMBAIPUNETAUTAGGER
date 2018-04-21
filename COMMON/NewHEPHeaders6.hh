@@ -89,58 +89,61 @@ namespace NewHEPHeaders {
             void construct (TR _x = 0, TR _y = 0) {x[0] = _x;x[1] = _y;}
         public:
             TR x[2];
-            inline void SetPtPhi (TR _pt=0,TR _phi=0) {x[0]=_pt*cos(_phi);x[1]=_pt*sin(_phi);}
-            inline TR pt2 () { return (x[0] * x[0]) + (x[1] * x[1]); }
-            inline double pt () { return (sqrt (pt2())); }
-            inline TR safenorm2 () {
+            inline void SetPtPhi (const TR _pt=0,const TR _phi=0) {x[0]=_pt*cos(_phi);x[1]=_pt*sin(_phi);}
+            inline TR pt2 () const { return (x[0] * x[0]) + (x[1] * x[1]); }
+            inline TR pt () const { return (sqrt (pt2())); }
+            inline TR safenorm2 () const {
                 TR mag = pt2 ();
                 if (CPPFileIO::mymod (mag) < 0.0000000001) {mag = CPPFileIO::mysign (mag) * 0.0000000001;}
                 return mag;
             }
-            inline double phi () {
-                double ret = acos (x[0] / sqrt (safenorm2 ()));
+            inline TR phi () const {
+                TR ret = acos (x[0] / sqrt (safenorm2 ()));
                 if (x[1] < 0) {ret = CONSTANTS::PI2 - ret;}
                 return ret;
             }
-            inline double dphi (plane2vector < TR > b) {
-                double ret = CPPFileIO::mymod (b.phi () - phi ());
+            inline TR dphi (const plane2vector < TR > b) const {
+                TR ret = CPPFileIO::mymod (b.phi () - phi ());
                 if (ret > CONSTANTS::PI) { ret = CONSTANTS::PI2 - ret; }
                 return ret;
             }
-            inline plane2vector < TR > operator + (plane2vector < TR > b)
+            inline plane2vector < TR > operator + (const plane2vector < TR > b) const
             { return plane2vector < TR > (x[0] + b.x[0], x[1] + b.x[1]); }
 
-            inline plane2vector < TR > operator - (plane2vector < TR > b)
+            inline plane2vector < TR > operator - (const plane2vector < TR > b) const
             { return plane2vector < TR > (x[0] - b.x[0], x[1] - b.x[1]); }
 
-            inline TR operator * (plane2vector < TR > b)
+            inline TR operator * (const plane2vector < TR > b) const
             { return (x[0] * b.x[0]) + (x[1] * b.x[1]); }
 
-            inline plane2vector < TR > operator * (TR b)
-            { return plane2vector < TR > (x[0] * b, x[1] * b); }
+            inline plane2vector <TR> operator * (const TR b) const
+            { return plane2vector <TR> (x[0] * b, x[1] * b); }
 
-            inline plane2vector < TR > operator / (TR b)
-            { return plane2vector < TR > (x[0] / b, x[1] / b); }
+            inline plane2vector <TR> operator / (const TR b) const
+            { return plane2vector <TR> (x[0] / b, x[1] / b); }
 
-            inline double operator  () (plane2vector < TR > b) { return dphi (b); }
+            inline TR operator  () (const plane2vector <TR> b) const { return dphi (b); }
 
-            inline plane2vector < TR > flip ()
-            { return plane2vector < TR > (-x[0], -x[1]); }
+            inline plane2vector <TR> flip () const
+            { return plane2vector <TR> (-x[0], -x[1]); }
 
-            inline plane2vector < TR > dir () {
-                plane2vector < TR > ret (x[0], x[1]);
-                double mag = sqrt (ret.safenorm2 ());
+            inline plane2vector <TR> dir () const {
+                plane2vector <TR> ret (x[0], x[1]);
+                TR mag = sqrt (ret.safenorm2 ());
                 ret = ret / mag;
                 return ret;
             }
 
-            inline bool operator > (plane2vector < TR > b) { return pt2 () > b.pt2 (); }
-            inline bool operator < (plane2vector < TR > b) { return pt2 () < b.pt2 (); }
-            inline ssize_t operator >> (CPPFileIO::FileFD & f) { return f.multiwrite2file (*this); }
-            inline ssize_t operator << (CPPFileIO::FileFD & f) { return f.multiread2file (*this); }
-            inline TR & operator [] (size_t i) { return x[i]; }
+            inline bool operator > (const plane2vector < TR > b) const { return pt2 () > b.pt2 (); }
+            inline bool operator < (const plane2vector < TR > b) const { return pt2 () < b.pt2 (); }
+            inline ssize_t operator >> (CPPFileIO::FileFD & f) const { return f.multiwrite2file (*this); }
+            inline ssize_t operator << (CPPFileIO::FileFD & f) const { return f.multiread2file (*this); }
+
+            inline TR & operator [] (size_t i)       { return x[i]; }
+            inline TR   operator [] (size_t i) const { return x[i]; }
+
             inline void clearthis () { x[0] = 0; x[1] = 0; }
-            inline bool operator == (plane2vector < TR > b) {
+            inline bool operator == (const plane2vector < TR > b) const {
                 plane2vector < TR > tmp (x[0], x[1]);
                 tmp = tmp - b;
                 TR diff = tmp.pt2 ();
@@ -148,7 +151,7 @@ namespace NewHEPHeaders {
                 return diff < VECTOR_EQUALITY_LIMIT;
             }
 
-            plane2vector (TR _x = 0, TR _y = 0) {construct (_x, _y);}
+            plane2vector (const TR _x = 0, const TR _y = 0) {construct (_x, _y);}
             plane2vector (const plane2vector < TR > &c) {construct(c.x[0], c.x[1]);}
             ~plane2vector () {}
         };
@@ -156,7 +159,7 @@ namespace NewHEPHeaders {
         private:
         public:
             plane2vector < TR > xy; TR z;
-            inline void SetPtEtaPhi(TR _pt=0, TR _eta=0, TR _phi=0){
+            inline void SetPtEtaPhi(const TR _pt=0, const TR _eta=0, const TR _phi=0){
                 xy.SetPtPhi (_pt,_phi) ;
                 TR K = 2.0 * _eta ;
                 K = exp (K) ;
@@ -165,86 +168,92 @@ namespace NewHEPHeaders {
                 K = K / ( 1.0 - K ) ;
                 z = sqrt(_pt*_pt*K) * CPPFileIO::mysign(_eta) ;
             }
-            inline double phi () {return xy.phi ();}
-            inline TR pt2 () {return xy.pt2 ();}
-            inline double pt () {return xy.pt ();}
-            inline euclid3vector < TR > operator + (euclid3vector < TR > a)
+            inline TR phi () const {return xy.phi ();}
+            inline TR pt2 () const {return xy.pt2 ();}
+            inline TR pt () const {return xy.pt ();}
+            inline euclid3vector < TR > operator + (const euclid3vector < TR > a) const
             { return euclid3vector < TR > (xy + a.xy, z + a.z); }
 
-            inline euclid3vector < TR > operator - (euclid3vector < TR > a)
+            inline euclid3vector < TR > operator - (const euclid3vector < TR > a) const
             { return euclid3vector < TR > (xy - a.xy, z - a.z); }
 
-            inline TR operator * (euclid3vector < TR > a)
+            inline TR operator * (const euclid3vector <TR> a) const
             { return (xy * a.xy) + (z * a.z); }
 
-            inline euclid3vector < TR > operator * (TR a)
+            inline euclid3vector <TR> operator * (const TR a) const
             { return euclid3vector < TR > (xy * a, z * a); }
 
-            inline euclid3vector < TR > operator / (TR a)
+            inline euclid3vector <TR> operator / (const TR a) const
             { return euclid3vector < TR > (xy / a, z / a); }
 
-            inline TR p2 () { return xy.pt2 () + (z * z); }
-            inline double p () { return sqrt (p2 ()); }
+            inline TR p2 () const { return xy.pt2 () + (z * z); }
+            inline TR p () const { return sqrt (p2 ()); }
+
             inline TR & operator [] (size_t ret) {
                 if (ret > 1) { return z; }
                 else { return xy[ret]; }
             }
-            inline double eta ()
-            { double tmp_p = p (); return 0.5 * log ((tmp_p + z) / (tmp_p - z)); }
+            inline TR operator [] (size_t ret) const {
+                if (ret > 1) { return z; }
+                else { return xy[ret]; }
+            }
 
-            inline double meta () { return CPPFileIO::mymod (eta ()); }
+            inline TR eta () const
+            { TR tmp_p = p (); return 0.5 * log ((tmp_p + z) / (tmp_p - z)); }
 
-            inline double cone2 (euclid3vector < TR > b) {
-                double tphi = xy.dphi (b.xy);
+            inline TR meta () const { return CPPFileIO::mymod (eta ()); }
+
+            inline TR cone2 (const euclid3vector < TR > b) const {
+                TR tphi = xy.dphi (b.xy);
                 tphi = tphi * tphi;
-                double teta = eta () - b.eta ();
+                TR teta = eta () - b.eta ();
                 teta = teta * teta;
-                double ret = teta + tphi;
+                TR ret = teta + tphi;
                 return ret;
             }
-            inline double cone (euclid3vector < TR > b)
+            inline TR cone (const euclid3vector < TR > b) const
             { return sqrt (cone2 (b)); }
 
-            inline double dphi (euclid3vector < TR > b)
-            { double tphi = xy.dphi (b.xy); return tphi; }
+            inline TR dphi (const euclid3vector < TR > b) const
+            { TR tphi = xy.dphi (b.xy); return tphi; }
 
-            inline double operator  () (euclid3vector < TR > b) { return cone (b); }
-            inline TR safenorm2 () {
+            inline TR operator  () (const euclid3vector <TR> b) const { return cone (b); }
+            inline TR safenorm2 () const {
                 TR mag = xy.pt2 () + (z * z);
                 if (CPPFileIO::mymod (mag) < 0.0000000001)
                 { mag = CPPFileIO::mysign (mag) * 0.0000000001; }
                 return mag;
             }
-            inline euclid3vector < TR > flip () { return euclid3vector < TR > (xy.flip (), -z); }
-            inline euclid3vector < TR > trans () { return euclid3vector < TR > (xy, 0); }
-            inline euclid3vector < TR > dir () {
+            inline euclid3vector < TR > flip () const { return euclid3vector < TR > (xy.flip (), -z); }
+            inline euclid3vector < TR > trans () const { return euclid3vector < TR > (xy, 0); }
+            inline euclid3vector < TR > dir () const {
                 euclid3vector < TR > ret (*this);
-                double mag = sqrt (ret.safenorm2 ());
+                TR mag = sqrt (ret.safenorm2 ());
                 ret = ret / mag;
                 return ret;
             }
-            inline bool operator > (euclid3vector < TR > b) { return pt2 () > b.pt2 (); }
-            inline bool operator < (euclid3vector < TR > b) { return pt2 () < b.pt2 (); }
-            inline ssize_t operator >> (CPPFileIO::FileFD & f) { return f.multiwrite2file (*this); }
-            inline ssize_t operator << (CPPFileIO::FileFD & f) { return f.multiread2file (*this); }
+            inline bool operator > (const euclid3vector < TR > b) const { return pt2 () > b.pt2 (); }
+            inline bool operator < (const euclid3vector < TR > b) const { return pt2 () < b.pt2 (); }
+            inline ssize_t operator >> (CPPFileIO::FileFD & f) const { return f.multiwrite2file (*this); }
+            inline ssize_t operator << (CPPFileIO::FileFD & f) const { return f.multiread2file (*this); }
             inline void clearthis () { xy = plane2vector < TR > (0, 0); z = 0; }
-            inline bool operator == (euclid3vector < TR > b) {
+            inline bool operator == (const euclid3vector < TR > b) const {
                 euclid3vector < TR > tmp = (*this) - b;
                 TR diff = tmp.p2 ();
                 diff = CPPFileIO::mymod (diff);
                 return diff < VECTOR_EQUALITY_LIMIT;
             }
-            euclid3vector (TR _x = 0, TR _y = 0, TR _z = 0):xy (_x, _y) {z = _z;}
-            euclid3vector (plane2vector < TR > a, TR _z = 0):xy (a) {z = _z;}
+            euclid3vector (const TR _x = 0, const TR _y = 0, const TR _z = 0):xy (_x, _y) {z = _z;}
+            euclid3vector (const plane2vector < TR > a, const TR _z = 0):xy (a) {z = _z;}
             euclid3vector (const euclid3vector < TR > &a):xy (a.xy) {z = a.z;}
         };
         template < typename TR=double > class lorentz4vector {
         private:
         public:
             euclid3vector < TR > xyz; TR t;
-            inline void SetPtEtaPhiM(TR _pt, TR _eta, TR _phi, TR _m){
+            inline void SetPtEtaPhiM(const TR _pt, const TR _eta, const TR _phi, const TR _m){
                 xyz.xy.SetPtPhi(_pt,_phi);
-                double K = exp(2.0*_eta) ;
+                TR K = exp(2.0*_eta) ;
                 K=(K+1.0)/(K-1.0);
                 TR _pt2 = _pt * _pt ;
                 TR _m2 = _m*_m ;
@@ -253,82 +262,105 @@ namespace NewHEPHeaders {
                 t = sqrt(_E2);
                 xyz[2]=sqrt(_z2)*CPPFileIO::mysign(_eta);
             }
-            inline TR & operator [] (size_t ref) { if (ref > 2) { return t; } else { return xyz[ref]; } }
-            inline TR pt2 () { return xyz.pt2 (); }
-            inline double pt () { return xyz.pt (); }
-            inline TR p2 () { return xyz.p2 (); }
-            inline double p () { return xyz.p (); }
-            inline double phi () { return xyz.phi (); }
-            inline TR m2 () { return CPPFileIO::mymod ((t * t) - p2 ()); }
-            inline TR n2 () { return CPPFileIO::mymod ((t * t) + p2 ()); }
-            inline double eta () { return (0.5 * log ((t + xyz.z) / (t - xyz.z))); }
-            inline double meta () { return CPPFileIO::mymod (eta ()); }
-            inline double peta () { return xyz.eta (); }
-            inline double pmeta () { return xyz.meta (); }
-            inline double m () { return sqrt (m2 ()); }
-            inline double n () { return sqrt (n2 ()); }
-            inline double dphi (lorentz4vector < TR > b) { return xyz.dphi (b.xyz); }
-            inline lorentz4vector < TR > operator + (lorentz4vector < TR > b)
-            { return lorentz4vector < TR > (xyz + b.xyz, t + b.t); }
 
-            inline lorentz4vector < TR > operator - (lorentz4vector < TR > b)
-            { return lorentz4vector < TR > (xyz - b.xyz, t - b.t); }
+            inline TR & operator [] (const size_t ref)
+            { if (ref > 2) { return t; } else { return xyz[ref]; } }
 
-            inline TR operator * (lorentz4vector < TR > b) { return (t * b.t) - (xyz * b.xyz); }
-            inline lorentz4vector < TR > operator * (TR b) { return lorentz4vector < TR > (xyz * b, t * b); }
-            inline lorentz4vector < TR > operator / (TR b) { return lorentz4vector < TR > (xyz / b, t / b); }
-            inline void operator = ( euclid3vector < TR > other ) {
+            inline TR operator [] (const size_t ref) const
+            { if (ref > 2) { return t; } else { return xyz[ref]; } }
+
+            inline TR pt2 () const { return xyz.pt2 (); }
+            inline TR pt () const { return xyz.pt (); }
+            inline TR p2 () const { return xyz.p2 (); }
+            inline TR p () const { return xyz.p (); }
+            inline TR phi () const { return xyz.phi (); }
+            inline TR m2 () const { return CPPFileIO::mymod ((t * t) - p2 ()); }
+            inline TR n2 () const { return CPPFileIO::mymod ((t * t) + p2 ()); }
+            inline TR eta () const { return (0.5 * log ((t + xyz.z) / (t - xyz.z))); }
+            inline TR meta () const { return CPPFileIO::mymod (eta ()); }
+            inline TR peta () const { return xyz.eta (); }
+            inline TR pmeta () const { return xyz.meta (); }
+            inline TR m () const { return sqrt (m2 ()); }
+            inline TR n () const { return sqrt (n2 ()); }
+            inline TR dphi (const lorentz4vector < TR > b) const { return xyz.dphi (b.xyz); }
+            inline lorentz4vector <TR> operator + (const lorentz4vector < TR > b) const
+            { return lorentz4vector <TR> (xyz + b.xyz, t + b.t); }
+
+            inline lorentz4vector <TR> operator - (const lorentz4vector < TR > b) const
+            { return lorentz4vector <TR> (xyz - b.xyz, t - b.t); }
+
+            inline TR operator * (const lorentz4vector <TR> b) const
+            { return (t * b.t) - (xyz * b.xyz); }
+
+            inline lorentz4vector < TR > operator * (const TR b) const
+            { return lorentz4vector < TR > (xyz * b, t * b); }
+
+            inline lorentz4vector < TR > operator / (const TR b) const
+            { return lorentz4vector < TR > (xyz / b, t / b); }
+
+            inline void operator = ( const euclid3vector < TR > other ) {
                 xyz = other     ;
                 t   = other.p() ;
             }
-            inline double pcone2 (lorentz4vector < TR > b) {
-                double tphi = xyz.dphi (b.xyz);
+            inline void operator = ( const lorentz4vector < TR > other ) {
+                xyz = other.xyz ;
+                t   = other.t ;
+            }
+
+            inline TR pcone2 (const lorentz4vector < TR > b) const {
+                TR tphi = xyz.dphi (b.xyz);
                 tphi = tphi * tphi;
-                double teta = peta () - b.peta ();
+                TR teta = peta () - b.peta ();
                 teta = teta * teta;
-                double ret = teta + tphi;
+                TR ret = teta + tphi;
                 return ret;
             }
-            inline double pcone (lorentz4vector < TR > b) { return sqrt (pcone2 (b)); }
-            inline double cone2 (lorentz4vector < TR > b) {
-                double tphi = xyz.dphi (b.xyz);
+            inline TR pcone (const lorentz4vector < TR > b) const { return sqrt (pcone2 (b)); }
+            inline TR cone2 (const lorentz4vector < TR > b) const {
+                TR tphi = xyz.dphi (b.xyz);
                 tphi = tphi * tphi;
-                double teta = eta () - b.eta ();
+                TR teta = eta () - b.eta ();
                 teta = teta * teta;
-                double ret = teta + tphi;
+                TR ret = teta + tphi;
                 return ret;
             }
-            inline double cone (lorentz4vector < TR > b) { return sqrt (cone2 (b)); }
-            inline double operator  () (lorentz4vector < TR > b) { return cone (b); }
-            inline lorentz4vector < TR > flip () { return lorentz4vector < TR > (xyz.flip (), t); }
-            inline lorentz4vector < TR > trans () { return lorentz4vector < TR > (xyz.trans (), t); }
-            inline lorentz4vector < TR > dir () { return lorentz4vector < TR > (xyz.dir (), t); }
-            inline bool operator > (lorentz4vector < TR > b) { return pt2 () > b.pt2 (); }
-            inline bool operator < (lorentz4vector < TR > b) { return pt2 () < b.pt2 (); }
-            inline ssize_t operator >> (CPPFileIO::FileFD & f) { return f.multiwrite2file (*this); }
-            inline ssize_t operator << (CPPFileIO::FileFD & f) { return f.multiread2file (*this); }
-            inline bool cleared () { return (t < 0); }
-            inline bool pass () { return (t > 0); }
+            inline TR cone (const lorentz4vector < TR > b) const { return sqrt (cone2 (b)); }
+            inline TR operator  () (const lorentz4vector < TR > b) const { return cone (b); }
+            inline lorentz4vector < TR > flip () const
+            { return lorentz4vector < TR > (xyz.flip (), t); }
+
+            inline lorentz4vector < TR > trans () const
+            { return lorentz4vector < TR > (xyz.trans (), t); }
+
+            inline lorentz4vector < TR > dir () const
+            { return lorentz4vector < TR > (xyz.dir (), t); }
+
+            inline bool operator > (const lorentz4vector < TR > b) const { return pt2 () > b.pt2 (); }
+            inline bool operator < (const lorentz4vector < TR > b) const { return pt2 () < b.pt2 (); }
+            inline ssize_t operator >> (CPPFileIO::FileFD & f) const { return f.multiwrite2file (*this); }
+            inline ssize_t operator << (CPPFileIO::FileFD & f) const { return f.multiread2file (*this); }
+            inline bool cleared () const { return (t < 0); }
+            inline bool pass () const { return (t > 0); }
             inline void clearthis () { t = -1; xyz = euclid3vector < TR > (0, 0, 0); }
-            inline bool operator == (lorentz4vector < TR > b) {
+            inline bool operator == (const lorentz4vector < TR > b) const {
                 lorentz4vector < TR > tmp = (*this) - b;
                 TR diff = tmp.n2 ();
                 diff = CPPFileIO::mymod (diff);
                 return diff < VECTOR_EQUALITY_LIMIT;
             }
-            inline double gamma () { return (double) t / m (); }
-            inline TR gamma2 () { return t * t / m2 (); }
-            inline double beta () {
-                double g = (double) gamma2 ();
+            inline TR gamma () const { return (TR) t / m (); }
+            inline TR gamma2 () const { return t * t / m2 (); }
+            inline TR beta () const {
+                TR g = (TR) gamma2 ();
                 g = 1.0 / g;
                 g = 1.0 - g;
                 return sqrt (g);
             }
-            inline euclid3vector < TR > Velocity () { return xyz.dir () * beta (); }
-            inline lorentz4vector < TR > LorentzBoost (euclid3vector < TR > booster) {
+            inline euclid3vector <TR> Velocity () const { return xyz.dir () * beta (); }
+            inline lorentz4vector <TR> LorentzBoost (const euclid3vector < TR > booster) const {
                 euclid3vector < TR > parallel = booster * ((xyz * booster) / booster.p2 ());
                 euclid3vector < TR > perpendicular = xyz - parallel;
-                double gm = booster.p2 ();
+                TR gm = booster.p2 ();
                 gm = 1.0 - gm;
                 gm = (1.0 / gm);
                 gm = sqrt (gm);
@@ -338,11 +370,11 @@ namespace NewHEPHeaders {
                 ret.xyz = parallel + perpendicular;
                 return ret;
             }
-            inline lorentz4vector < TR > LorentzBoostGamma (euclid3vector < TR > booster) {
-                double gm2   = (double) booster.p2 ()        ;
-                double gm    = (double) sqrt       (gm2)     ;
-                double beta2 = (double) 1.0    -   (1.0/gm2) ;
-                double beta  = (double) sqrt       (beta2)   ;
+            inline lorentz4vector < TR > LorentzBoostGamma (const euclid3vector <TR> booster) const {
+                TR gm2   = (TR) booster.p2 ()        ;
+                TR gm    = (TR) sqrt       (gm2)     ;
+                TR beta2 = (TR) 1.0    -   (1.0/gm2) ;
+                TR beta  = (TR) sqrt       (beta2)   ;
                 euclid3vector < TR > dir = booster / (TR)gm   ;
                 euclid3vector < TR > vel = dir     * (TR)beta ;
                 euclid3vector < TR > parallel      = dir * (dir*xyz) ;
@@ -354,10 +386,10 @@ namespace NewHEPHeaders {
                 }
                 return ret;
             }
-            inline fastjet::PseudoJet getpseudojet () { return fastjet::PseudoJet (xyz[0], xyz[1], xyz[2], t); }
-            lorentz4vector (TR _x = 0, TR _y = 0, TR _z = 0, TR _t = 0):xyz (_x, _y, _z) { t = _t; }
-            lorentz4vector (euclid3vector < TR > a, TR _t = -1) :xyz (a) { if(_t<0) {t=a.p();} else {t=_t;} }
-            lorentz4vector (plane2vector  < TR > a, TR _z = 0 , TR _t = -1) :xyz (a)
+            inline fastjet::PseudoJet getpseudojet () const { return fastjet::PseudoJet (xyz[0], xyz[1], xyz[2], t); }
+            lorentz4vector (const TR _x = 0, const TR _y = 0, const TR _z = 0, const TR _t = 0):xyz (_x, _y, _z) { t = _t; }
+            lorentz4vector (const euclid3vector < TR > a, const TR _t = -1) :xyz (a) { if(_t<0) {t=a.p();} else {t=_t;} }
+            lorentz4vector (const plane2vector  < TR > a, const TR _z = 0 , const TR _t = -1) :xyz (a)
             { if (_t<0) {t=a.pt();} else {t=_t;} xyz.z = _z ; }
             lorentz4vector (const lorentz4vector < TR > &a):xyz (a.xyz) { t = a.t; }
             lorentz4vector (const fastjet::PseudoJet & injet) {
@@ -368,23 +400,131 @@ namespace NewHEPHeaders {
             }
             ~lorentz4vector(){}
         };
+        template < typename TR=double, typename TI=int > class DelphesVectors {
+        private:
+        public:
+            lorentz4vector <TR> momentum      ;
+            TI                  Charge        ;
+            TR                  Eem, Ehad, Emu;
+            inline void Set_Ehad_Fraction (const TR InFrac) { Ehad = momentum[3] * InFrac ; }
+            inline void Set_Eem_Fraction  (const TR InFrac) { Eem  = momentum[3] * InFrac ; }
+            inline void Set_Emu_Fraction  (const TR InFrac) { Emu  = momentum[3] * InFrac ; }
+            inline void SetPtEtaPhiM      (const TR _pt, const TR _eta, const TR _phi, const TR _m)
+            { momentum.SetPtEtaPhiM (_pt,_eta,_phi,_m) ; }
+
+            inline TR & operator [] (const size_t ref) {
+                if      ( ref <= 3 ) { return momentum[ref] ; }
+                else if ( ref == 4 ) { return Eem           ; }
+                else if ( ref == 5 ) { return Ehad          ; }
+                else if ( ref == 6 ) { return Emu           ; }
+            }
+            inline TR operator [] (const size_t ref) const {
+                if      ( ref <= 3 ) { return momentum[ref] ; }
+                else if ( ref == 4 ) { return Eem           ; }
+                else if ( ref == 5 ) { return Ehad          ; }
+                else if ( ref == 6 ) { return Emu           ; }
+            }
+
+            inline TR pt2   () const { return momentum.pt2  () ; }
+            inline TR pt    () const { return momentum.pt   () ; }
+            inline TR p2    () const { return momentum.p2   () ; }
+            inline TR p     () const { return momentum.p    () ; }
+            inline TR phi   () const { return momentum.phi  () ; }
+            inline TR m2    () const { return momentum.m2   () ; }
+            inline TR n2    () const { return momentum.n2   () ; }
+            inline TR eta   () const { return momentum.eta  () ; }
+            inline TR meta  () const { return momentum.meta () ; }
+            inline TR peta  () const { return momentum.peta () ; }
+            inline TR pmeta () const { return momentum.meta () ; }
+            inline TR m     () const { return momentum.m    () ; }
+            inline TR n     () const { return momentum.n    () ; }
+            inline TR dphi       (const DelphesVectors <TR,TI> b) const { return momentum.dphi (b.momentum) ; }
+            inline TR operator * (const DelphesVectors <TR,TI> b) const { return momentum * b.momentum      ; }
+
+            inline DelphesVectors <TR,TI> operator * (const TR b) const
+            { return DelphesVectors <TR,TI> (momentum*b,Eem*b,Ehad*b,Emu*b,Charge); }
+
+            inline lorentz4vector < TR > operator / (const TR b) const
+            { return DelphesVectors <TR,TI> (momentum/b,Eem/b,Ehad/b,Emu/b,Charge); }
+
+            inline void operator = ( const DelphesVectors <TR,TI> other )
+            { momentum=other.momentum; Eem=other.Eem; Ehad=other.Ehad; Emu=other.Emu; Charge=other.Charge;}
+
+            inline DelphesVectors <TR,TI> operator + (const DelphesVectors <TR,TI> b) const {
+                return DelphesVectors <TR,TI> (
+                    momentum+b.momentum,
+                    Eem+b.Eem,
+                    Ehad+b.Ehad,
+                    Emu+b.Emu,
+                    Charge+b.Charge
+                );
+            }
+            inline DelphesVectors <TR,TI> operator - (const DelphesVectors <TR,TI> b) const {
+                return DelphesVectors <TR,TI> (
+                    momentum-b.momentum,
+                    Eem-b.Eem,
+                    Ehad-b.Ehad,
+                    Emu-b.Emu,
+                    Charge-b.Charge
+                );
+            }
+
+            inline TR cone (const DelphesVectors <TR,TI> b) const { return momentum.cone(b.momentum); }
+            inline TR operator () (const DelphesVectors <TR,TI> b) const { return momentum(b.momentum); }
+            inline bool operator > (const DelphesVectors <TR,TI> b) const { return momentum.pt2 () > b.momentum.pt2 (); }
+            inline bool operator < (const DelphesVectors <TR,TI> b) const { return momentum.pt2 () < b.momentum.pt2 (); }
+            inline ssize_t operator >> (CPPFileIO::FileFD & f) const { return f.multiwrite2file (*this); }
+            inline ssize_t operator << (CPPFileIO::FileFD & f) const { return f.multiread2file (*this); }
+            inline bool cleared () const { return (momentum[3] < 0); }
+            inline bool pass () const { return (momentum[3] > 0); }
+            inline void clearthis () { momentum.clearthis(); Eem=-10000; Ehad=-10000; Emu=-10000; Charge=0; }
+            inline TR gamma () const { return (TR) momentum[3] / momentum.m(); }
+            inline TR gamma2 () const { return (TR) momentum[3] * momentum[3] / momentum.m2(); }
+            inline TR beta () const {return momentum.beta();}
+            inline euclid3vector < TR > Velocity () const { return momentum.Velocity(); }
+            inline DelphesVectors <TR,TI> LorentzBoost (const euclid3vector < TR > booster) const {
+                lorentz4vector<TR>ret=momentum.LorentzBoost(booster);
+                TR ratio = ret[3] / momentum[3] ;
+                TR _Eem=Eem*ratio, _Ehad=Ehad*ratio, _Emu=Emu*ratio;
+                return DelphesVectors <TR,TI> (ret,_Eem,_Ehad,_Emu,Charge) ;
+            }
+            inline DelphesVectors <TR,TI> LorentzBoostGamma (const euclid3vector < TR > booster) const {
+                lorentz4vector<TR>ret=momentum.LorentzBoostGamma(booster);
+                TR ratio=ret[3]/momentum[3];
+                TR _Eem=Eem*ratio, _Ehad=Ehad*ratio, _Emu=Emu*ratio;
+                return DelphesVectors <TR,TI> (ret,_Eem,_Ehad,_Emu,Charge) ;
+            }
+
+            inline fastjet::PseudoJet getpseudojet () const
+            { return fastjet::PseudoJet (momentum[0],momentum[1],momentum[2],momentum[3]) ; }
+
+            DelphesVectors
+            (const lorentz4vector<TR>_momentum, const TR _Eem=0, const TR _Ehad=0, const TR _Emu=0, const TI _Charge=0)
+            { momentum=_momentum; Eem=_Eem; Ehad=_Ehad; Emu=_Emu; Charge=_Charge; }
+
+            DelphesVectors
+            (const TR _x=0, const TR _y=0, const TR _z=0, const TR _t=0, const TR _Eem=0, const TR _Ehad=0, const TR _Emu=0, const TI _Charge=0)
+            { momentum=lorentz4vector<TR>(_x,_y,_z,_t); Eem=_Eem; Ehad=_Ehad; Emu=_Emu; Charge=_Charge; }
+
+            ~DelphesVectors () {}
+        } ;
         template < typename TRF=double, typename TRI=long > class ParticleNode   {
         private:
             lorentz4vector <TRF> momentum;
             TRI d1, d2, pid;
         public:
 
-            inline int id () { return pid; }
+            inline TRI id () { return pid; }
             inline bool isFinal () { return (d1 == -1) && (d2 == -1); }
-            inline int daughter1 () { return d1; }
-            inline int daughter2 () { return d2; }
-            inline float px () { return momentum[0]; }
-            inline float py () { return momentum[1]; }
-            inline float pz () { return momentum[2]; }
-            inline float e () { return momentum[3]; }
-            inline float pt () { return momentum.pt (); }
-            inline float eta () { return momentum.eta (); }
-            inline float modeta () { return CPPFileIO::mymod (eta()); }
+            inline TRI daughter1 () { return d1; }
+            inline TRI daughter2 () { return d2; }
+            inline TRF px () { return momentum[0]; }
+            inline TRF py () { return momentum[1]; }
+            inline TRF pz () { return momentum[2]; }
+            inline TRF e () { return momentum[3]; }
+            inline TRF pt () { return momentum.pt (); }
+            inline TRF eta () { return momentum.eta (); }
+            inline TRF modeta () { return CPPFileIO::mymod (eta()); }
             inline bool isDetectable () {
                 bool ret = (pt () > 0.5) && (modeta () < 6.0);
                 ret = ret && detectable (pid);
@@ -394,20 +534,20 @@ namespace NewHEPHeaders {
             inline bool IsLepton () { return islepton (pid); }
             inline bool IsBLike () { return isblike(pid); }
             inline bool IsBMeson () {
-                long tmppid = CPPFileIO::mymod(pid) ;
+                TRI tmppid = CPPFileIO::mymod(pid) ;
                 return ((tmppid>100)&&isblike(tmppid));
             }
             inline bool IsBQuakr () {
-                long tmppid = CPPFileIO::mymod(pid) ;
+                TRI tmppid = CPPFileIO::mymod(pid) ;
                 return (tmppid==PID::BOTTOM);
             }
             inline TRF operator [] (size_t i) { return momentum[i] ; }
             inline lorentz4vector <TRF> & getvec () { return momentum; }
             inline lorentz4vector <TRF> & operator () () { return momentum; }
-            inline double operator  () (ParticleNode b) { return momentum (b.momentum); }
-            inline double operator  () (lorentz4vector <TRF> b) { return momentum (b); }
-            inline double pcone (ParticleNode b) { return momentum.pcone (b.momentum); }
-            inline double pcone (lorentz4vector <TRF> b) { return momentum.pcone (b); }
+            inline TRF operator  () (ParticleNode b) { return momentum (b.momentum); }
+            inline TRF operator  () (lorentz4vector <TRF> b) { return momentum (b); }
+            inline TRF pcone (ParticleNode b) { return momentum.pcone (b.momentum); }
+            inline TRF pcone (lorentz4vector <TRF> b) { return momentum.pcone (b); }
             inline fastjet::PseudoJet getpseudojet () { return momentum.getpseudojet (); }
 
             ParticleNode () {d1=-1;d2= -1;pid = 0;momentum.clearthis ();}
