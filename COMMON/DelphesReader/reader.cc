@@ -118,7 +118,8 @@ private:
     TClonesArray              * EFlowNeutralHadron ;
 
     inline NewHEPHeaders::pseudojets & Analyze (size_t entry) {
-        treeReader->ReadEntry (entry) ; jetvectors.clear () ;
+        treeReader->ReadEntry (entry) ;
+        jetvectors.clear () ; Vectors.clear () ;
         size_t limit_EFlowTrack         = EFlowTrack->GetEntries         () ;
         size_t limit_EFlowPhoton        = EFlowPhoton->GetEntries        () ;
         size_t limit_EFlowNeutralHadron = EFlowNeutralHadron->GetEntries () ;
@@ -126,21 +127,39 @@ private:
             Track*tmp=(Track*)EFlowTrack->At(i);
             NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
-            jetvectors.push_back(tmp2.getpseudojet());
+            if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::MUON){
+                tmp2.Eem=tmp2[3]*0.1;
+                tmp2.Ehad=tmp2[3]*0.1;
+                tmp2.Emu=tmp2[3]*0.8;
+            } else {
+                tmp2.Eem=tmp2[3]*0.5;
+                tmp2.Ehad=tmp2[3]*0.5;
+                tmp2.Emu=tmp2[3]*0.0;
+            }
+            tmp2.Charge=(CPPFileIO::mymod(tmp->Charge));
+            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+            tmpjet.set_user_index (Vectors.size()) ;
+            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
         }
         for(size_t i=0;i<limit_EFlowPhoton;i++){
             Tower*tmp=(Tower*)EFlowPhoton->At(i);
             NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
-            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad; tmp2.Emu=0;
-            jetvectors.push_back(tmp2.getpseudojet());
+            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
+            tmp2.Emu=0; tmp2.Charge=0;
+            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+            tmpjet.set_user_index (Vectors.size()) ;
+            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
         }
         for(size_t i=0;i<limit_EFlowNeutralHadron;i++){
             Tower*tmp=(Tower*)EFlowNeutralHadron->At(i);
             NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
-            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad; tmp2.Emu=0;
-            jetvectors.push_back(tmp2.getpseudojet());
+            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
+            tmp2.Emu=0; tmp2.Charge=0;
+            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+            tmpjet.set_user_index (Vectors.size()) ;
+            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
         }
         return jetvectors;
     }
