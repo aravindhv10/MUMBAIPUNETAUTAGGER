@@ -90,6 +90,10 @@ set /Herwig/Shower/GammatoQQbarSplitFn:AngularOrdered Yes
 #set /Herwig/Shower/KinematicsReconstructor:InitialStateReconOption Rapidity
 #set /Herwig/Shower/ShowerHandler:SpinCorrelations No
 
+set /Herwig/Particles/tau+/tau+->nu_taubar,nu_e,e+;:OnOff Off
+set /Herwig/Particles/tau+/tau+->nu_taubar,nu_mu,mu+;:OnOff Off
+set /Herwig/Particles/tau-/tau-->nu_tau,nu_ebar,e-;:OnOff Off
+set /Herwig/Particles/tau-/tau-->nu_tau,nu_mubar,mu-;:OnOff Off
 
 read snippets/HepMC.in
 set /Herwig/Analysis/HepMC:PrintEvent 10000

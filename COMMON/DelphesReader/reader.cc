@@ -128,12 +128,16 @@ private:
             NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
             tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
             if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::MUON){
-                tmp2.Eem=tmp2[3]*0.1;
-                tmp2.Ehad=tmp2[3]*0.1;
-                tmp2.Emu=tmp2[3]*0.8;
+                tmp2.Eem=tmp2[3]*0.0;
+                tmp2.Ehad=tmp2[3]*0.0;
+                tmp2.Emu=tmp2[3]*1.0;
+            } else if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::ELECTRON) {
+                tmp2.Eem=tmp2[3]*1.0;
+                tmp2.Ehad=tmp2[3]*0.0;
+                tmp2.Emu=tmp2[3]*0.0;
             } else {
-                tmp2.Eem=tmp2[3]*0.5;
-                tmp2.Ehad=tmp2[3]*0.5;
+                tmp2.Eem=tmp2[3]*0.2;
+                tmp2.Ehad=tmp2[3]*0.8;
                 tmp2.Emu=tmp2[3]*0.0;
             }
             tmp2.Charge=(CPPFileIO::mymod(tmp->Charge));
@@ -176,6 +180,14 @@ public:
     NewHEPHeaders::pseudojets jetvectors ;
     std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> Vectors ;
     inline NewHEPHeaders::pseudojets & operator () (size_t entry) {return Analyze(entry);}
+
+    inline size_t count_tracks (std::vector <size_t> & in_indices) {
+        size_t ret=0;
+        //printf("Came to count_tracks\n");
+        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Charge;}
+        return ret;
+    }
+
     inline size_t operator () () {return numberOfEntries;}
     DelphesReader (std::string&_ListOfFiles) : ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
     ~DelphesReader () {destroy();}
@@ -185,7 +197,7 @@ private:
     DelphesReader * MainReader;
     std::string OutFileName;
     std::string delphesfilename ;
-    TH1F OutMassHist, nsubjettinesshist1, nsubjettinesshist2, nsubjettinesshist3 ;
+    TH1F OutMassHist, nsubjettinesshist1, nsubjettinesshist2, nsubjettinesshist3, NumTracks ;
     inline void Analyze(size_t i){
         NewHEPHeaders::pseudojets&jetvectors=MainReader[0](i);
         fastjet::JetAlgorithm algorithm=fastjet::antikt_algorithm;
@@ -221,6 +233,13 @@ private:
             if(this_jet.m()>40){
                 HardSubStructureFinder tmpslave ;
                 OutMassHist.Fill        ( tmpslave(this_jet) ) ;
+                if(tmpslave.HiggsTagged){
+                    NewHEPHeaders::pseudojets constituents = this_jet.constituents();
+                    std::vector <size_t> indices ;
+                    for(size_t ii=0;ii<constituents.size();ii++)
+                    {indices.push_back((size_t)constituents[ii].user_index());}
+                    NumTracks.Fill((float)MainReader->count_tracks(indices));
+                }
                 nsubjettinesshist1.Fill ( tau1_beta1         ) ;
                 nsubjettinesshist2.Fill ( tau2_beta1         ) ;
                 nsubjettinesshist3.Fill ( tau3_beta1         ) ;
@@ -260,16 +279,23 @@ private:
             nsubjettinesshist3.Draw("hist");
             C.SaveAs("nsubjettinesshist3.pdf");
         }
+        /*nNumber of tracks*/ {
+            TCanvas C;
+            NumTracks.Draw("hist");
+            C.SaveAs("NumTracks.pdf");
+        }
     }
 public:
     inline void operator()(std::string _delphesfilename){AnalyzeNewFile(_delphesfilename);}
 
     MainAnalyzer (std::string _OutFileName):
-    OutFileName        (_OutFileName)                                            ,
-    OutMassHist        ("OutMassHist","OutMassHist",100,20,150)                  ,
-    nsubjettinesshist1 ("nsubjettinesshist1","nsubjettinesshist1",100,-0.1,30.1) ,
-    nsubjettinesshist2 ("nsubjettinesshist2","nsubjettinesshist2",100,-0.1,30.1) ,
-    nsubjettinesshist3 ("nsubjettinesshist3","nsubjettinesshist3",100,-0.1,30.1) {}
+    OutFileName        (_OutFileName) ,
+    OutMassHist        ( "OutMassHist"        , "OutMassHist"        , 100 , 20.0 , 150.0 ) ,
+    nsubjettinesshist1 ( "nsubjettinesshist1" , "nsubjettinesshist1" , 100 , -0.1 ,  30.1 ) ,
+    nsubjettinesshist2 ( "nsubjettinesshist2" , "nsubjettinesshist2" , 100 , -0.1 ,  30.1 ) ,
+    nsubjettinesshist3 ( "nsubjettinesshist3" , "nsubjettinesshist3" , 100 , -0.1 ,  30.1 ) ,
+    NumTracks          ( "NumTracks"          , "NumTracks"          , 120 , -0.1 ,  60.1 )
+    {}
 
     ~MainAnalyzer(){WriteHistograms();}
 };
