@@ -1,0 +1,5 @@
+#!/bin/bash
+cd "$('dirname' '--' "${0}")"
+('./copyer_NoISR'   "${1}");
+('./copyer_WithISR' "${1}");
+exit '0'
