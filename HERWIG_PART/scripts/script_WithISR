@@ -1,0 +1,18 @@
+#!/bin/bash
+('./copyer_WithISR' '1');
+('./copyer_WithISR' '2');
+('./copyer_WithISR' '3');
+('./copyer_WithISR' '4');
+('./copyer_WithISR' '5');
+('./copyer_WithISR' '6');
+('./copyer_WithISR' '7');
+('./copyer_WithISR' '8');
+('./copyer_WithISR' '9');
+('./copyer_WithISR' '10');
+('./copyer_WithISR' '11');
+('./copyer_WithISR' '12');
+('./copyer_WithISR' '13');
+('./copyer_WithISR' '14');
+('./copyer_WithISR' '15');
+('./copyer_WithISR' '16');
+exit '0'

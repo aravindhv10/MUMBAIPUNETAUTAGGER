@@ -1,0 +1,6 @@
+#!/bin/bash
+cd "$('dirname' '--' "${0}")"
+'rm' '-vf' '--' "./${1}/NoISRout.root"
+'cat' "./${1}/LHE.hepmc" | 'DelphesHepMC' './delphes_card_CMS_mod.tcl' "./${1}/NoISRout.root"  "-"
+exit '0'
+

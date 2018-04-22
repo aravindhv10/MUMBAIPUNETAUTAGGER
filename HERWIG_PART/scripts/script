@@ -1,0 +1,18 @@
+#!/bin/bash
+('./copyer' '1');
+('./copyer' '2');
+('./copyer' '3');
+('./copyer' '4');
+('./copyer' '5');
+('./copyer' '6');
+('./copyer' '7');
+('./copyer' '8');
+('./copyer' '9');
+('./copyer' '10');
+('./copyer' '11');
+('./copyer' '12');
+('./copyer' '13');
+('./copyer' '14');
+('./copyer' '15');
+('./copyer' '16');
+exit '0'

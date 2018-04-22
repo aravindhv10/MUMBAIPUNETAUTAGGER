@@ -1,0 +1,12 @@
+#!/bin/bash
+cd "$('dirname' '--' "${0}")"
+'ls' "./${1}/NoISRout.root"&&exit '0'
+'ls' "./${1}/LHE.in"&&exit '0'
+'cp' './LHENoISRMPI.in' "${1}/LHE.in"
+source '/home/aravind/herwig'
+cd "${1}"
+'Herwig' 'read' 'LHE.in'
+'Herwig' 'run' 'LHE.run'
+'../RunDelphesNoISR' "${1}"
+'rm' '-vf' '--' 'LHE.hepmc' 'LHE-EvtGen.log' 'LHE.log' 'LHE.out' 'LHE.run' 'LHE.in' 'LHE.tex'
+exit '0'

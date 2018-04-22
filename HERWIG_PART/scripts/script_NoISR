@@ -1,0 +1,18 @@
+#!/bin/bash
+('./copyer_NoISR' '1');
+('./copyer_NoISR' '2');
+('./copyer_NoISR' '3');
+('./copyer_NoISR' '4');
+('./copyer_NoISR' '5');
+('./copyer_NoISR' '6');
+('./copyer_NoISR' '7');
+('./copyer_NoISR' '8');
+('./copyer_NoISR' '9');
+('./copyer_NoISR' '10');
+('./copyer_NoISR' '11');
+('./copyer_NoISR' '12');
+('./copyer_NoISR' '13');
+('./copyer_NoISR' '14');
+('./copyer_NoISR' '15');
+('./copyer_NoISR' '16');
+exit '0'
