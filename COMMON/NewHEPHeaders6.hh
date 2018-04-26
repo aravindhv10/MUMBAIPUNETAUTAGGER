@@ -387,6 +387,7 @@ namespace NewHEPHeaders {
                 return ret;
             }
             inline fastjet::PseudoJet getpseudojet () const { return fastjet::PseudoJet (xyz[0], xyz[1], xyz[2], t); }
+            inline void operator = (const fastjet::PseudoJet & injet) {this[0]=lorentz4vector<TR>(injet);}
             lorentz4vector (const TR _x = 0, const TR _y = 0, const TR _z = 0, const TR _t = 0):xyz (_x, _y, _z) { t = _t; }
             lorentz4vector (const euclid3vector < TR > a, const TR _t = -1) :xyz (a) { if(_t<0) {t=a.p();} else {t=_t;} }
             lorentz4vector (const plane2vector  < TR > a, const TR _z = 0 , const TR _t = -1) :xyz (a)
