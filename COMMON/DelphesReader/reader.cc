@@ -28,20 +28,119 @@
 #include "fastjet/tools/Pruner.hh"
 
 constexpr double epsilon = 0.0000001 ;
-typedef std::vector<int> ints;
+typedef std::vector <size_t> indices;
+
+class DelphesReader {
+private:
+    std::string               & ListOfFiles        ;
+    TChain                      chain              ;
+    ExRootTreeReader          * treeReader         ;
+    size_t                      numberOfEntries    ;
+    TClonesArray              * EFlowTrack         ;
+    TClonesArray              * EFlowPhoton        ;
+    TClonesArray              * EFlowNeutralHadron ;
+
+    inline NewHEPHeaders::pseudojets & Analyze (size_t entry) {
+        treeReader->ReadEntry (entry) ;
+        jetvectors.clear () ; Vectors.clear () ;
+        size_t limit_EFlowTrack         = EFlowTrack->GetEntries         () ;
+        size_t limit_EFlowPhoton        = EFlowPhoton->GetEntries        () ;
+        size_t limit_EFlowNeutralHadron = EFlowNeutralHadron->GetEntries () ;
+        for(size_t i=0;i<limit_EFlowTrack;i++){
+            Track*tmp=(Track*)EFlowTrack->At(i);
+            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
+            tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
+            if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::MUON){
+                tmp2.Eem=tmp2[3]*0.0;
+                tmp2.Ehad=tmp2[3]*0.0;
+                tmp2.Emu=tmp2[3]*1.0;
+            } else if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::ELECTRON) {
+                tmp2.Eem=tmp2[3]*1.0;
+                tmp2.Ehad=tmp2[3]*0.0;
+                tmp2.Emu=tmp2[3]*0.0;
+            } else {
+                tmp2.Eem=tmp2[3]*0.2;
+                tmp2.Ehad=tmp2[3]*0.8;
+                tmp2.Emu=tmp2[3]*0.0;
+            }
+            tmp2.Charge=(CPPFileIO::mymod(tmp->Charge));
+            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+            tmpjet.set_user_index (Vectors.size()) ;
+            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+        }
+        for(size_t i=0;i<limit_EFlowPhoton;i++){
+            Tower*tmp=(Tower*)EFlowPhoton->At(i);
+            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
+            tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
+            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
+            tmp2.Emu=0; tmp2.Charge=0;
+            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+            tmpjet.set_user_index (Vectors.size()) ;
+            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+        }
+        for(size_t i=0;i<limit_EFlowNeutralHadron;i++){
+            Tower*tmp=(Tower*)EFlowNeutralHadron->At(i);
+            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
+            tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
+            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
+            tmp2.Emu=0; tmp2.Charge=0;
+            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+            tmpjet.set_user_index (Vectors.size()) ;
+            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+        }
+        return jetvectors;
+    }
+    inline void construct(){
+        chain.Add            (&(ListOfFiles[0]))                             ;
+        treeReader         = new ExRootTreeReader   ( &chain               ) ;
+        numberOfEntries    = treeReader->GetEntries (                      ) ;
+        EFlowTrack         = treeReader->UseBranch  ( "EFlowTrack"         ) ;
+        EFlowPhoton        = treeReader->UseBranch  ( "EFlowPhoton"        ) ;
+        EFlowNeutralHadron = treeReader->UseBranch  ( "EFlowNeutralHadron" ) ;
+    }
+    inline void destroy () {delete treeReader;}
+public:
+    NewHEPHeaders::pseudojets jetvectors ;
+    std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> Vectors ;
+    inline NewHEPHeaders::pseudojets & operator () (size_t entry) {return Analyze(entry);}
+
+    inline size_t count_tracks (std::vector <size_t> & in_indices) const {
+        size_t ret=0;
+        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Charge;}
+        return ret;
+    }
+    inline double hadronic_energy (std::vector <size_t> & in_indices) const {
+        double ret=0;
+        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Ehad;}
+        return ret;
+    }
+    inline double electromagnetic_energy (std::vector <size_t> & in_indices) const {
+        double ret=0;
+        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Eem;}
+        return ret;
+    }
+
+    inline size_t operator () () {return numberOfEntries;}
+    DelphesReader (std::string&_ListOfFiles) : ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
+    ~DelphesReader () {destroy();}
+};
 
 class HardSubStructureFinder {
 public:
     const double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet, mh, mhmin, mhmax, zcut, rcut_factor;
     const size_t nfilt;
-    double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass, EFC[6], EFCDR[4];
+    double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass, EFC[6], EFCDR[4], frac_em, frac_had;
+    bool HiggsTagged ;
+    size_t n_tracks ;
+    indices index_constituents ;
     NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons ;
     fastjet::PseudoJet        prunedjet , triple   , Higgs       , taucandidate ;
-    ints index_constituents ;
-    bool HiggsTagged        ;
-    size_t n_tracks ;
 private:
-    template <typename T> inline void read_extra_variables (const T & in) {}
+    void read_extra_variables (const DelphesReader & in) {
+        n_tracks = in.count_tracks           (index_constituents) ;
+        frac_em  = in.electromagnetic_energy (index_constituents) ;
+        frac_had = in.hadronic_energy        (index_constituents) ;
+    }
     inline void get_constituent_indices (const fastjet::PseudoJet & this_jet) {
         NewHEPHeaders::pseudojets vectors = this_jet.constituents();
         const size_t limit = vectors.size(); index_constituents.resize(limit);
@@ -147,100 +246,8 @@ public:
     ~HardSubStructureFinder(){}
 };
 
-class DelphesReader {
-private:
-    std::string               & ListOfFiles        ;
-    TChain                      chain              ;
-    ExRootTreeReader          * treeReader         ;
-    size_t                      numberOfEntries    ;
-    TClonesArray              * EFlowTrack         ;
-    TClonesArray              * EFlowPhoton        ;
-    TClonesArray              * EFlowNeutralHadron ;
 
-    inline NewHEPHeaders::pseudojets & Analyze (size_t entry) {
-        treeReader->ReadEntry (entry) ;
-        jetvectors.clear () ; Vectors.clear () ;
-        size_t limit_EFlowTrack         = EFlowTrack->GetEntries         () ;
-        size_t limit_EFlowPhoton        = EFlowPhoton->GetEntries        () ;
-        size_t limit_EFlowNeutralHadron = EFlowNeutralHadron->GetEntries () ;
-        for(size_t i=0;i<limit_EFlowTrack;i++){
-            Track*tmp=(Track*)EFlowTrack->At(i);
-            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
-            tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
-            if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::MUON){
-                tmp2.Eem=tmp2[3]*0.0;
-                tmp2.Ehad=tmp2[3]*0.0;
-                tmp2.Emu=tmp2[3]*1.0;
-            } else if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::ELECTRON) {
-                tmp2.Eem=tmp2[3]*1.0;
-                tmp2.Ehad=tmp2[3]*0.0;
-                tmp2.Emu=tmp2[3]*0.0;
-            } else {
-                tmp2.Eem=tmp2[3]*0.2;
-                tmp2.Ehad=tmp2[3]*0.8;
-                tmp2.Emu=tmp2[3]*0.0;
-            }
-            tmp2.Charge=(CPPFileIO::mymod(tmp->Charge));
-            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
-            tmpjet.set_user_index (Vectors.size()) ;
-            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
-        }
-        for(size_t i=0;i<limit_EFlowPhoton;i++){
-            Tower*tmp=(Tower*)EFlowPhoton->At(i);
-            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
-            tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
-            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
-            tmp2.Emu=0; tmp2.Charge=0;
-            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
-            tmpjet.set_user_index (Vectors.size()) ;
-            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
-        }
-        for(size_t i=0;i<limit_EFlowNeutralHadron;i++){
-            Tower*tmp=(Tower*)EFlowNeutralHadron->At(i);
-            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
-            tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
-            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
-            tmp2.Emu=0; tmp2.Charge=0;
-            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
-            tmpjet.set_user_index (Vectors.size()) ;
-            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
-        }
-        return jetvectors;
-    }
-    inline void construct(){
-        chain.Add            (&(ListOfFiles[0]))                             ;
-        treeReader         = new ExRootTreeReader   ( &chain               ) ;
-        numberOfEntries    = treeReader->GetEntries (                      ) ;
-        EFlowTrack         = treeReader->UseBranch  ( "EFlowTrack"         ) ;
-        EFlowPhoton        = treeReader->UseBranch  ( "EFlowPhoton"        ) ;
-        EFlowNeutralHadron = treeReader->UseBranch  ( "EFlowNeutralHadron" ) ;
-    }
-    inline void destroy () {delete treeReader;}
-public:
-    NewHEPHeaders::pseudojets jetvectors ;
-    std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> Vectors ;
-    inline NewHEPHeaders::pseudojets & operator () (size_t entry) {return Analyze(entry);}
 
-    inline size_t count_tracks (std::vector <size_t> & in_indices) {
-        size_t ret=0;
-        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Charge;}
-        return ret;
-    }
-    inline double hadronic_energy (std::vector <size_t> & in_indices) {
-        double ret=0;
-        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Ehad;}
-        return ret;
-    }
-    inline double electromagnetic_energy (std::vector <size_t> & in_indices) {
-        double ret=0;
-        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Eem;}
-        return ret;
-    }
-
-    inline size_t operator () () {return numberOfEntries;}
-    DelphesReader (std::string&_ListOfFiles) : ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
-    ~DelphesReader () {destroy();}
-};
 class MainAnalyzer {
 private:
     DelphesReader * MainReader;
