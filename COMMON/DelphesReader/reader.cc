@@ -307,9 +307,8 @@ namespace Step1 {
             for (size_t i=0;i<4;i++) { nsub_ratio [i] = -10000.0 ; }
         }
         inline void ReadFrom (HardSubStructureFinder&other) {
-            for (size_t i=0;i<CPPFileIO::mymin(other.t_parts.size(),(size_t)2);i++)     {t_parts[i]=other.t_parts[i];}
-            for (size_t i=0;i<CPPFileIO::mymin(other.tau_subs.size(),(size_t)2);i++)    {tau_subs[i]=other.tau_subs[i];}
-            for (size_t i=0;i<CPPFileIO::mymin(other.tau_hadrons.size(),(size_t)2);i++) {tau_hadrons[i]=other.tau_hadrons[i];}
+            frac_em         = other.frac_em         ;
+            frac_had        = other.frac_had        ;
             filteredjetmass = other.filteredjetmass ;
             filt_tau_R      = other.filt_tau_R      ;
             prunedmass      = other.prunedmass      ;
@@ -321,6 +320,12 @@ namespace Step1 {
             for (size_t i=0;i<4;i++) { EFCDR      [i] = other.EFCDR      [i] ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = other.nsub       [i] ; }
             for (size_t i=0;i<4;i++) { nsub_ratio [i] = other.nsub_ratio [i] ; }
+            for ( size_t i=0 ; i < CPPFileIO::mymin ( other.t_parts.size     () , (size_t)2 ) ; i++ )
+            { t_parts     [i] = other.t_parts     [i] ; }
+            for ( size_t i=0 ; i < CPPFileIO::mymin ( other.tau_subs.size    () , (size_t)2 ) ; i++ )
+            { tau_subs    [i] = other.tau_subs    [i] ; }
+            for ( size_t i=0 ; i < CPPFileIO::mymin ( other.tau_hadrons.size () , (size_t)2 ) ; i++ )
+            { tau_hadrons [i] = other.tau_hadrons [i] ; }
         }
     public:
         inline void operator () () {clear();}
@@ -349,7 +354,6 @@ namespace Step1 {
                     if(tmpslave.HiggsTagged){
                         tmpslave(MainReader[0]);
                         OutPutVariables tmp; tmp = tmpslave ;
-                        //printf("Came here... writing... %e\n",tmp.EFC[1]);
                         Writer.push_back(tmp);
                     }
                 }
@@ -672,8 +676,8 @@ namespace Step2 {
         inline void Plot_Masses () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
-            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].filteredjetmass;}
-            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].filteredjetmass;}
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].n_tracks;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].n_tracks;}
             PlotHist("Masses",Masses1,Masses2);
         }
 
