@@ -26,6 +26,7 @@
 #include <fastjet/tools/JHTopTagger.hh>
 #include "fastjet/tools/Filter.hh"
 #include "fastjet/tools/Pruner.hh"
+#include "TColor.h"
 
 namespace Step1 {
 
@@ -192,7 +193,7 @@ namespace Step1 {
                     EnergyCorrelator ECF3 ( 3, beta, measure ) ; EFC[3] = ECF3 (this_jet) ;
                     EnergyCorrelator ECF4 ( 4, beta, measure ) ; EFC[4] = ECF4 (this_jet) ;
                     EnergyCorrelator ECF5 ( 5, beta, measure ) ; EFC[5] = ECF5 (this_jet) ;
-                    for (size_t i=0;i<4;i++) if (EFC[i+1]>epsilon) {EFCDR[i]=(EFC[i]+EFC[i+2])/EFC[i+1];}
+                    for (size_t i=0;i<4;i++) if (EFC[i+1]>epsilon) {EFCDR[i]=(EFC[i]+EFC[i+2])/(EFC[i+1]*EFC[i+1]);}
                 }
                 /* The NSubjettiness part: */ {
                     Nsubjettiness nSub1 ( 1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
@@ -344,10 +345,11 @@ namespace Step1 {
                 fastjet::PseudoJet&this_jet=antikt_jets[j];
                 if(this_jet.m()>40){
                     HardSubStructureFinder tmpslave ;
-                    tmpslave(this_jet);
+                    double mass = tmpslave(this_jet);
                     if(tmpslave.HiggsTagged){
                         tmpslave(MainReader[0]);
                         OutPutVariables tmp; tmp = tmpslave ;
+                        //printf("Came here... writing... %e\n",tmp.EFC[1]);
                         Writer.push_back(tmp);
                     }
                 }
@@ -364,12 +366,11 @@ namespace Step1 {
             DelphesReader tmpreader(_delphesfilename);
             MainReader=&tmpreader; Analyze();
         }
-        inline void WriteHistograms(){
-        }
+
     public:
         inline void operator()(std::string _delphesfilename){AnalyzeNewFile(_delphesfilename);}
         MainAnalyzer (std::string _OutFileName): OutFileName (_OutFileName), Writer(OutFileName) {}
-        ~MainAnalyzer(){WriteHistograms();}
+        ~MainAnalyzer(){}
     };
 
     inline void ProcessType (std::string _name) {
@@ -387,11 +388,15 @@ namespace Step1 {
             mkdir("./SKIM_DATA/",(mode_t)0755);
             char tmp[512] ;
             sprintf(tmp,"./SKIM_DATA/%s",&(name[0])); mkdir(tmp,(mode_t)0755);
-            sprintf(tmp,"./SKIM_DATA/%s/NoMPI",&(name[0])); MainAnalyzer NoMPI(tmp);
-            sprintf(tmp,"./SKIM_DATA/%s/WithMPI",&(name[0])); MainAnalyzer WithMPI(tmp);
             CPPFileIO::ForkMe forker;
-            if(forker.InKid()){for(size_t i=0;i<16;i++){NoMPI(NoISRList[i]);}}
-            if(forker.InKid()){for(size_t i=0;i<16;i++){WithMPI(WithISRList[i]);}}
+            if(forker.InKid()){
+                sprintf(tmp,"./SKIM_DATA/%s/NoMPI",&(name[0])); MainAnalyzer NoMPI(tmp);
+                for(size_t i=0;i<16;i++){NoMPI(NoISRList[i]);}
+            }
+            if(forker.InKid()){
+                sprintf(tmp,"./SKIM_DATA/%s/WithMPI",&(name[0])); MainAnalyzer WithMPI(tmp);
+                for(size_t i=0;i<16;i++){WithMPI(WithISRList[i]);}
+            }
         }
     }
 
@@ -404,16 +409,280 @@ namespace Step1 {
 }
 
 namespace Step2 {
-    inline void PlotAll (std::string filename) {
-        CPPFileIO::FileArray <Step1::OutPutVariables> reader(filename);
-        Step1::OutPutVariables*element;
-        size_t Limit = reader.size();
-        element=&(reader(0,Limit));
-        TH1F Masses("Masses","Masses",150,-0.1,150.1);
-        for(size_t i=0;i<Limit;i++){Masses.Fill(element[i].filteredjetmass);}
-        TCanvas C;
-        Masses.Draw();
-        filename=filename+".pdf";
-        C.SaveAs(&(filename[0]));
+
+    class MyHist1D {
+    private:
+        std::string histname      ;
+        std::string lefthistname  ;
+        TH1F        LH            ;
+    public:
+        inline void Fill  (double a) {if(a>-90.0){LH.Fill(a);}}
+        inline void Write () {
+            TCanvas C;
+            LH.Scale(1.0/LH.Integral());
+            LH.SetLineWidth(3);
+            int binmaxL = LH.GetMaximumBin ()        ;
+            double xL   = LH.GetBinContent (binmaxL) ;
+            double maxy = xL;
+            LH.SetMaximum(maxy);
+            LH.SetLineColor(TColor::GetColor("#990000"));
+            LH.Draw("hist same");
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
+            std::string outname = "./GRAPHS/" + histname + ".pdf" ;
+            C.SaveAs(&(outname[0]));
+        }
+        MyHist1D  (std::string _histname, size_t nbins, double min, double max):
+        histname(_histname),
+        lefthistname(_histname),
+        LH(&(lefthistname[0]),&(histname[0]),nbins,min,max) {}
+        ~MyHist1D (){Write();}
+    };
+
+    class MyHist2D {
+    private:
+        std::string histname  ;
+        std::string histname1 ;
+        std::string histname2 ;
+        TH1F H1, H2;
+    public:
+        inline void Fill1 (double a) {if(a>-90.0){H1.Fill(a);}}
+        inline void Fill2 (double a) {if(a>-90.0){H2.Fill(a);}}
+        inline void Write () {
+            TCanvas C;
+            H1.Scale(1.0/H1.Integral());
+            H2.Scale(1.0/H2.Integral());
+            H1.SetLineWidth(3); H2.SetLineWidth(3);
+            int binmax1 = H1.GetMaximumBin ()        ;
+            int binmax2 = H2.GetMaximumBin ()        ;
+            double x1   = H1.GetBinContent (binmax1) ;
+            double x2   = H2.GetBinContent (binmax2) ;
+            double maxy = CPPFileIO::mymax (x1,x2)   ;
+            H1.SetMaximum(maxy); H2.SetMaximum(maxy);
+            H1.SetLineColor(TColor::GetColor("#990000"));
+            H2.SetLineColor(TColor::GetColor("#000099"));
+            H1.Draw("hist same"); H2.Draw("hist same");
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
+            std::string outname = "./GRAPHS/" + histname + ".pdf" ;
+            C.SaveAs(&(outname[0]));
+        }
+        MyHist2D  (std::string _histname, size_t nbins, double min, double max):
+        histname(_histname),
+        histname1("H1"+_histname), histname2("H2"+_histname),
+        H1(&(histname1[0]),&(histname[0]),nbins,min,max),
+        H2(&(histname2[0]),&(histname[0]),nbins,min,max) {}
+        ~MyHist2D () {Write();}
+    };
+
+    class MyHist3D {
+    private:
+        std::string histname ;
+        std::string H1name, H2name, H3name  ;
+        TH1F H1, H2, H3 ;
+    public:
+        bool WriteStacked;
+        inline void H1Fill (double a) {if(a>-90.0){H1.Fill(a);}}
+        inline void H2Fill (double a) {if(a>-90.0){H2.Fill(a);}}
+        inline void H3Fill (double a) {if(a>-90.0){H3.Fill(a);}}
+
+        inline void Write () {
+            H1.Scale(1.0/H1.Integral());
+            H2.Scale(1.0/H2.Integral());
+            H3.Scale(1.0/H3.Integral());
+
+            int binmax1 = H1.GetMaximumBin () ;
+            int binmax2 = H2.GetMaximumBin () ;
+            int binmax3 = H3.GetMaximumBin () ;
+
+            double x=CPPFileIO::mymax
+            (H3.GetBinContent(binmax3),CPPFileIO::mymax(H1.GetBinContent(binmax1),H2.GetBinContent(binmax2)));
+
+            H1.SetLineColor(TColor::GetColor("#990000"));
+            H2.SetLineColor(TColor::GetColor("#009900"));
+            H3.SetLineColor(TColor::GetColor("#000099"));
+            H1.SetMaximum     (x) ; H2.SetMaximum     (x) ; H3.SetMaximum     (x) ;
+            H1.SetLineWidth   (3) ; H2.SetLineWidth   (3) ; H3.SetLineWidth   (3) ;
+            TCanvas C;
+            H1.Draw ("hist same") ; H2.Draw ("hist same") ; H3.Draw ("hist same") ;
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
+            std::string outname = "./GRAPHS/" + histname + ".pdf" ;
+            C.SaveAs(&(outname[0]));
+        }
+
+        inline void WriteStack () {
+            H1.SetLineColor(TColor::GetColor("#990000")); H1.SetFillColor(TColor::GetColor("#990000"));
+            H2.SetLineColor(TColor::GetColor("#009900")); H2.SetFillColor(TColor::GetColor("#009900"));
+            H3.SetLineColor(TColor::GetColor("#000099")); H3.SetFillColor(TColor::GetColor("#000099"));
+            H1.SetLineWidth(3); H2.SetLineWidth(3); H3.SetLineWidth(3);
+            THStack hs ("hs","Stacked 1D histograms") ;
+            hs.Add(&H1);
+            hs.Add(&H2);
+            hs.Add(&H3);
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
+            TCanvas C; hs.Draw(); std::string outname = "./GRAPHS/" + histname + ".pdf" ;
+            C.SaveAs(&(outname[0]));
+        }
+
+        MyHist3D  (std::string _histname, size_t nbins, double min, double max):
+        histname(_histname),
+        H1name("H1"+histname), H2name("H2"+histname), H3name("H3"+histname),
+        H1(&(H1name[0]),&(histname[0]),nbins,min,max),
+        H2(&(H2name[0]),&(histname[0]),nbins,min,max),
+        H3(&(H3name[0]),&(histname[0]),nbins,min,max) {WriteStacked=false;}
+        ~MyHist3D (){
+            if(WriteStacked){WriteStack();}
+            else{Write();}
+        }
+    } ;
+
+    inline void PlotHist (std::string name, std::vector<float>&vals) {
+        size_t limit=vals.size();
+        if(limit>0){
+            std::sort(vals.begin(),vals.end());
+            TH1F hist(&(name[0]),&(name[0]),100,vals[0],vals[limit-1]);
+            for(size_t i=0;i<limit;i++){hist.Fill(vals[i]);}
+            TCanvas C;
+            hist.Scale(1.0/hist.Integral());
+            hist.SetLineWidth(3);
+            int binmaxL = hist.GetMaximumBin ()        ;
+            double xL   = hist.GetBinContent (binmaxL) ;
+            double maxy = xL;
+            hist.SetMaximum(maxy);
+            hist.SetLineColor(TColor::GetColor("#990000"));
+            hist.Draw("hist same");
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
+            std::string outname = "./GRAPHS/" + name + ".pdf" ;
+            C.SaveAs(&(outname[0]));
+        }
     }
+
+    inline void PlotHist (std::string name, std::vector<float>&vals, std::vector<float>&vals2) {
+        TCanvas C                      ;
+        size_t limit  = vals.size  ()  ;
+        size_t limit2 = vals2.size ()  ;
+        float xmin , xmax              ;
+        std::string name2 = name + "2" ;
+        /* Check for limits of histograms: */ {
+            if(limit>0){
+                std::sort ( vals.begin() , vals.end() ) ;
+                xmin = vals [0]       ;
+                xmax = vals [limit-1] ;
+            }
+            if(limit2>0){
+                std::sort ( vals2.begin() , vals2.begin() ) ;
+                xmin = CPPFileIO::mymin ( vals2 [0]       , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals2 [limit-1] , xmax ) ;
+            }
+        }
+        TH1F hist  ( & ( name  [0] ) , & ( name  [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist2 ( & ( name2 [0] ) , & ( name2 [0] ) , 100 , xmin , xmax ) ;
+        /* prepare the histograms: */ {
+            /* Fill the histograms: */ {
+                for ( size_t i = 0 ; i < vals.size  () ; i++ ) { hist.Fill  ( vals  [i] ) ; }
+                for ( size_t i = 0 ; i < vals2.size () ; i++ ) { hist2.Fill ( vals2 [i] ) ; }
+            }
+            /* Rescale and color the histograms: */ {
+                hist.Scale  ( 1.0 / hist.Integral  () ) ; hist.SetLineWidth  (3) ; hist.SetLineColor  (TColor::GetColor("#990000"));
+                hist2.Scale ( 1.0 / hist2.Integral () ) ; hist2.SetLineWidth (3) ; hist2.SetLineColor (TColor::GetColor("#000099"));
+            }
+            /* Set the maximum */ {
+                float x1 = hist.GetBinContent  ( hist.GetMaximumBin  () ) ;
+                float x2 = hist2.GetBinContent ( hist2.GetMaximumBin () ) ;
+                float x = CPPFileIO::mymax(x1,x2);
+                hist.SetMaximum(x); hist2.SetMaximum(x);
+            }
+        }
+        /* Draw and save the histograms: */ {
+            TCanvas C;
+            hist.Draw  ("hist same") ;
+            hist2.Draw ("hist same") ;
+            name = name + ".pdf";
+            C.SaveAs(&(name[0]));
+        }
+    }
+
+    inline void PlotHist (std::string name, std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3) {
+
+        float xmin , xmax              ;
+        std::string name2 = name + "2" ;
+        std::string name3 = name + "3" ;
+
+        size_t limit  = vals.size  ()  ;
+        size_t limit2 = vals2.size ()  ;
+        size_t limit3 = vals3.size ()  ;
+
+        /* Check for limits of histograms: */ {
+            if(limit>0){
+                std::sort ( vals.begin() , vals.end() ) ;
+                xmin = vals [0]       ;
+                xmax = vals [limit-1] ;
+            }
+            if(limit2>0){
+                std::sort ( vals2.begin() , vals2.begin() ) ;
+                xmin = CPPFileIO::mymin ( vals2 [0]       , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals2 [limit-1] , xmax ) ;
+            }
+            if(limit3>0){
+                std::sort ( vals3.begin() , vals3.begin() ) ;
+                xmin = CPPFileIO::mymin ( vals3 [0]       , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals3 [limit-1] , xmax ) ;
+            }
+        }
+
+        TH1F hist  ( & ( name  [0] ) , & ( name  [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist2 ( & ( name2 [0] ) , & ( name2 [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist3 ( & ( name3 [0] ) , & ( name3 [0] ) , 100 , xmin , xmax ) ;
+
+        /* prepare the histograms: */ {
+            /* Fill the histograms: */ {
+                for ( size_t i = 0 ; i < vals.size  () ; i++ ) { hist.Fill  ( vals  [i] ) ; }
+                for ( size_t i = 0 ; i < vals2.size () ; i++ ) { hist2.Fill ( vals2 [i] ) ; }
+                for ( size_t i = 0 ; i < vals3.size () ; i++ ) { hist3.Fill ( vals3 [i] ) ; }
+            }
+            /* Rescale and color the histograms: */ {
+                hist.Scale  ( 1.0 / hist.Integral  () ) ; hist.SetLineWidth  (3) ; hist.SetLineColor  (TColor::GetColor("#990000"));
+                hist2.Scale ( 1.0 / hist2.Integral () ) ; hist2.SetLineWidth (3) ; hist2.SetLineColor (TColor::GetColor("#009900"));
+                hist3.Scale ( 1.0 / hist3.Integral () ) ; hist3.SetLineWidth (3) ; hist3.SetLineColor (TColor::GetColor("#000099"));
+            }
+            /* Set the maximum */ {
+                float x1 = hist.GetBinContent  ( hist.GetMaximumBin  () ) ;
+                float x2 = hist2.GetBinContent ( hist2.GetMaximumBin () ) ;
+                float x3 = hist3.GetBinContent ( hist3.GetMaximumBin () ) ;
+                float x  = CPPFileIO::mymax ( CPPFileIO::mymax (x1,x2) , x3 ) ;
+                hist.SetMaximum(x); hist2.SetMaximum(x); hist3.SetMaximum(x);
+            }
+        }
+
+        /* Draw and save the histograms: */ {
+            TCanvas C;
+            hist.Draw  ("hist same") ;
+            hist2.Draw ("hist same") ;
+            hist3.Draw ("hist same") ;
+            name = name + ".pdf";
+            C.SaveAs(&(name[0]));
+        }
+
+    }
+
+    class PlotAll {
+    private:
+        CPPFileIO::FileArray <Step1::OutPutVariables> reader1, reader2;
+        size_t Limit1, Limit2;
+        Step1::OutPutVariables *element1, *element2 ;
+    public:
+        inline void Plot_Masses () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].filteredjetmass;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].filteredjetmass;}
+            PlotHist("Masses",Masses1,Masses2);
+        }
+
+        PlotAll():
+        reader1 ( "./SKIM_DATA/BoostedZ/NoMPI"   ) , Limit1 (reader1.size()) , element1(&(reader1(0,Limit1))) ,
+        reader2 ( "./SKIM_DATA/BoostedZ/WithMPI" ) , Limit2 (reader2.size()) , element2(&(reader2(0,Limit2)))
+        {Plot_Masses();}
+
+        ~PlotAll(){}
+    } ;
+
 }

@@ -33,8 +33,6 @@ int BenchmarkVectors () {
 }
 
 int main () {
-    Step1::ProcessAll();
-    return 0;
-    Step2::PlotAll("./SKIM_DATA/NoMPI/out.dat");
+    Step2::PlotAll();
     return 0;
 }
