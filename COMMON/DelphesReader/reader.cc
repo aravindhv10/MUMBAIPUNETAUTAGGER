@@ -372,58 +372,34 @@ namespace Step1 {
         ~MainAnalyzer(){WriteHistograms();}
     };
 
-    inline void ReadRootFilesAndAnalyzeWithMPI () {
-        mkdir((const char*)"SKIM_DATA",(mode_t)0755);
-        mkdir((const char*)"SKIM_DATA/WithMPI",(mode_t)0755);
-        MainAnalyzer a("SKIM_DATA/WithMPI/out.dat");
-        a("./BoostedZ/4/out.root");
-        a("./BoostedZ/1/out.root");
-        a("./BoostedZ/3/out.root");
-        a("./BoostedZ/2/out.root");
-        a("./BoostedZ/15/out.root");
-        a("./BoostedZ/9/out.root");
-        a("./BoostedZ/5/out.root");
-        a("./BoostedZ/13/out.root");
-        a("./BoostedZ/12/out.root");
-        a("./BoostedZ/7/out.root");
-        a("./BoostedZ/8/out.root");
-        a("./BoostedZ/10/out.root");
-        a("./BoostedZ/6/out.root");
-        a("./BoostedZ/11/out.root");
-        a("./BoostedZ/16/out.root");
-        a("./BoostedZ/14/out.root");
-    }
-    inline void ReadRootFilesAndAnalyzeNoMPI () {
-        mkdir((const char*)"SKIM_DATA",(mode_t)0755);
-        mkdir((const char*)"SKIM_DATA/NoMPI",(mode_t)0755);
-        MainAnalyzer a("SKIM_DATA/NoMPI/out.dat");
-        a("./BoostedZ/4/NoISRout.root");
-        a("./BoostedZ/1/NoISRout.root");
-        a("./BoostedZ/3/NoISRout.root");
-        a("./BoostedZ/2/NoISRout.root");
-        a("./BoostedZ/15/NoISRout.root");
-        a("./BoostedZ/9/NoISRout.root");
-        a("./BoostedZ/5/NoISRout.root");
-        a("./BoostedZ/13/NoISRout.root");
-        a("./BoostedZ/12/NoISRout.root");
-        a("./BoostedZ/7/NoISRout.root");
-        a("./BoostedZ/8/NoISRout.root");
-        a("./BoostedZ/10/NoISRout.root");
-        a("./BoostedZ/6/NoISRout.root");
-        a("./BoostedZ/11/NoISRout.root");
-        a("./BoostedZ/16/NoISRout.root");
-        a("./BoostedZ/14/NoISRout.root");
+    inline void ProcessType (std::string _name) {
+        std::string name(_name)      ;
+        std::string NoISRList   [16] ;
+        std::string WithISRList [16] ;
+        /* Get the names of root files: */ {
+            for(size_t i=0;i<16;i++){
+                char tmp[512] ;
+                sprintf (tmp,"./%s/%ld/NoISRout.root",&(name[0]),i+1) ; NoISRList[i]   = std::string(tmp);
+                sprintf (tmp,"./%s/%ld/out.root",&(name[0]),i+1)      ; WithISRList[i] = std::string(tmp);
+            }
+        }
+        /* Prepare the output: */ {
+            mkdir("./SKIM_DATA/",(mode_t)0755);
+            char tmp[512] ;
+            sprintf(tmp,"./SKIM_DATA/%s",&(name[0])); mkdir(tmp,(mode_t)0755);
+            sprintf(tmp,"./SKIM_DATA/%s/NoMPI",&(name[0])); MainAnalyzer NoMPI(tmp);
+            sprintf(tmp,"./SKIM_DATA/%s/WithMPI",&(name[0])); MainAnalyzer WithMPI(tmp);
+            CPPFileIO::ForkMe forker;
+            if(forker.InKid()){for(size_t i=0;i<16;i++){NoMPI(NoISRList[i]);}}
+            if(forker.InKid()){for(size_t i=0;i<16;i++){WithMPI(WithISRList[i]);}}
+        }
     }
 
-    class Processor {
-    private:
-    public:
-    } ;
-
-    inline void processall () {
-        CPPFileIO::ForkMe forker ;
-        if(forker.InKid()){ReadRootFilesAndAnalyzeWithMPI();}
-        if(forker.InKid()){ReadRootFilesAndAnalyzeNoMPI();}
+    inline void ProcessAll () {
+        CPPFileIO::ForkMe forker;
+        if(forker.InKid()){ProcessType("BoostedZToNuNuBar");}
+        if(forker.InKid()){ProcessType("BoostedZ");}
+        if(forker.InKid()){ProcessType("UnBoostedZ");}
     }
 }
 
