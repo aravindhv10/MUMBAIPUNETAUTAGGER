@@ -32,84 +32,106 @@ typedef std::vector <size_t> indices;
 
 class DelphesReader {
 private:
-    std::string               & ListOfFiles        ;
-    TChain                      chain              ;
-    ExRootTreeReader          * treeReader         ;
-    size_t                      numberOfEntries    ;
-    TClonesArray              * EFlowTrack         ;
-    TClonesArray              * EFlowPhoton        ;
-    TClonesArray              * EFlowNeutralHadron ;
-
-    inline NewHEPHeaders::pseudojets & Analyze (size_t entry) {
-        treeReader->ReadEntry (entry) ;
-        jetvectors.clear () ; Vectors.clear () ;
+    std::string        ListOfFiles        ;
+    TChain             chain              ;
+    ExRootTreeReader * treeReader         ;
+    size_t             numberOfEntries    ;
+    TClonesArray     * EFlowTrack         ;
+    TClonesArray     * EFlowPhoton        ;
+    TClonesArray     * EFlowNeutralHadron ;
+    TClonesArray     * GenParticles       ;
+public:
+    NewHEPHeaders::pseudojets                                 jetvectors ;
+    std::vector < NewHEPHeaders::VECTORS::DelphesVectors <> > Vectors    ;
+    std::vector < NewHEPHeaders::VECTORS::ParticleNode   <> > GenVectors ;
+    NewHEPHeaders::VECTORS::lorentz4vector               <>   ZVector    ;
+private:
+    inline void clear () {Vectors.clear();GenVectors.clear();jetvectors.clear();ZVector.clearthis();}
+    inline NewHEPHeaders::pseudojets & Analyze   (size_t entry) {
+        clear(); treeReader->ReadEntry(entry);
         size_t limit_EFlowTrack         = EFlowTrack->GetEntries         () ;
         size_t limit_EFlowPhoton        = EFlowPhoton->GetEntries        () ;
         size_t limit_EFlowNeutralHadron = EFlowNeutralHadron->GetEntries () ;
-        for(size_t i=0;i<limit_EFlowTrack;i++){
-            Track*tmp=(Track*)EFlowTrack->At(i);
-            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
-            tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
-            if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::MUON){
-                tmp2.Eem=tmp2[3]*0.0;
-                tmp2.Ehad=tmp2[3]*0.0;
-                tmp2.Emu=tmp2[3]*1.0;
-            } else if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::ELECTRON) {
-                tmp2.Eem=tmp2[3]*1.0;
-                tmp2.Ehad=tmp2[3]*0.0;
-                tmp2.Emu=tmp2[3]*0.0;
-            } else {
-                tmp2.Eem=tmp2[3]*0.2;
-                tmp2.Ehad=tmp2[3]*0.8;
-                tmp2.Emu=tmp2[3]*0.0;
+        size_t limit_GenParticles       = GenParticles->GetEntries       () ;
+        /* Read gen level info: */ {
+            GenVectors.resize(limit_GenParticles);
+            for(size_t j=0;j<limit_GenParticles;j++){
+                GenParticle*tmp=(GenParticle*)GenParticles->At(j);
+                GenVectors[j]=NewHEPHeaders::VECTORS::ParticleNode<>(
+                    tmp->Px,tmp->Py,tmp->Pz,tmp->E,tmp->D1,tmp->D2,tmp->PID
+                );
             }
-            tmp2.Charge=(CPPFileIO::mymod(tmp->Charge));
-            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
-            tmpjet.set_user_index (Vectors.size()) ;
-            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+            for(size_t j=0;(j<GenVectors.size())&&(ZVector.cleared());j++)
+            {if(GenVectors[j].id()==NewHEPHeaders::PID::Z){ZVector=GenVectors[j].getvec();}}
         }
-        for(size_t i=0;i<limit_EFlowPhoton;i++){
-            Tower*tmp=(Tower*)EFlowPhoton->At(i);
-            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
-            tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
-            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
-            tmp2.Emu=0; tmp2.Charge=0;
-            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
-            tmpjet.set_user_index (Vectors.size()) ;
-            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+        /* Read tracks: */ {
+            for(size_t i=0;i<limit_EFlowTrack;i++){
+                Track*tmp=(Track*)EFlowTrack->At(i);
+                NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
+                tmp2.SetPtEtaPhiM(tmp->PT,tmp->Eta,tmp->Phi,0);
+                if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::MUON){
+                    tmp2.Eem  = tmp2[3] * 0.0 ;
+                    tmp2.Ehad = tmp2[3] * 0.0 ;
+                    tmp2.Emu  = tmp2[3] * 1.0 ;
+                } else if(CPPFileIO::mymod(tmp->PID)==NewHEPHeaders::PID::ELECTRON) {
+                    tmp2.Eem  = tmp2[3] * 1.0 ;
+                    tmp2.Ehad = tmp2[3] * 0.0 ;
+                    tmp2.Emu  = tmp2[3] * 0.0 ;
+                } else {
+                    tmp2.Eem  = tmp2[3] * 0.1 ;
+                    tmp2.Ehad = tmp2[3] * 0.9 ;
+                    tmp2.Emu  = tmp2[3] * 0.0 ;
+                }
+                tmp2.Charge=(CPPFileIO::mymod(tmp->Charge));
+                fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+                tmpjet.set_user_index (Vectors.size()) ;
+                Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+            }
         }
-        for(size_t i=0;i<limit_EFlowNeutralHadron;i++){
-            Tower*tmp=(Tower*)EFlowNeutralHadron->At(i);
-            NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
-            tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
-            tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
-            tmp2.Emu=0; tmp2.Charge=0;
-            fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
-            tmpjet.set_user_index (Vectors.size()) ;
-            Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+        /* Read Photons: */ {
+            for(size_t i=0;i<limit_EFlowPhoton;i++){
+                Tower*tmp=(Tower*)EFlowPhoton->At(i);
+                NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
+                tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
+                tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
+                tmp2.Emu=0; tmp2.Charge=0;
+                fastjet::PseudoJet tmpjet = tmp2.getpseudojet();
+                tmpjet.set_user_index (Vectors.size()) ;
+                Vectors.push_back (tmp2) ; jetvectors.push_back (tmpjet) ;
+            }
+        }
+        /* Read Neutral Hadrons: */ {
+            for(size_t i=0;i<limit_EFlowNeutralHadron;i++){
+                Tower*tmp=(Tower*)EFlowNeutralHadron->At(i);
+                NewHEPHeaders::VECTORS::DelphesVectors<>tmp2;
+                tmp2.SetPtEtaPhiM(tmp->ET,tmp->Eta,tmp->Phi,0);
+                tmp2.Eem=tmp->Eem; tmp2.Ehad=tmp->Ehad;
+                tmp2.Emu=0; tmp2.Charge=0;
+                fastjet::PseudoJet tmpjet=tmp2.getpseudojet();
+                tmpjet.set_user_index(Vectors.size());
+                Vectors.push_back(tmp2); jetvectors.push_back(tmpjet);
+            }
         }
         return jetvectors;
     }
-    inline void construct(){
+    inline void                        construct ()             {
         chain.Add            (&(ListOfFiles[0]))                             ;
         treeReader         = new ExRootTreeReader   ( &chain               ) ;
         numberOfEntries    = treeReader->GetEntries (                      ) ;
         EFlowTrack         = treeReader->UseBranch  ( "EFlowTrack"         ) ;
         EFlowPhoton        = treeReader->UseBranch  ( "EFlowPhoton"        ) ;
         EFlowNeutralHadron = treeReader->UseBranch  ( "EFlowNeutralHadron" ) ;
+        GenParticles       = treeReader->UseBranch  ( "Particle"           ) ;
     }
-    inline void destroy () {delete treeReader;}
+    inline void                        destroy   ()             {delete treeReader;}
 public:
-    NewHEPHeaders::pseudojets jetvectors ;
-    std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> Vectors ;
     inline NewHEPHeaders::pseudojets & operator () (size_t entry) {return Analyze(entry);}
-
-    inline size_t count_tracks (std::vector <size_t> & in_indices) const {
+    inline size_t count_tracks           (std::vector <size_t> & in_indices) const {
         size_t ret=0;
-        for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Charge;}
+        for(size_t i=0;i<in_indices.size();i++){ret=ret+CPPFileIO::mymod(Vectors[in_indices[i]].Charge);}
         return ret;
     }
-    inline double hadronic_energy (std::vector <size_t> & in_indices) const {
+    inline double hadronic_energy        (std::vector <size_t> & in_indices) const {
         double ret=0;
         for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Ehad;}
         return ret;
@@ -119,9 +141,8 @@ public:
         for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Eem;}
         return ret;
     }
-
-    inline size_t operator () () {return numberOfEntries;}
-    DelphesReader (std::string&_ListOfFiles) : ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
+    inline size_t operator ()            ()                                        {return numberOfEntries;}
+    DelphesReader (std::string&_ListOfFiles): ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
     ~DelphesReader () {destroy();}
 };
 
@@ -129,37 +150,61 @@ class HardSubStructureFinder {
 public:
     const double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet, mh, mhmin, mhmax, zcut, rcut_factor;
     const size_t nfilt;
-    double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass, EFC[6], EFCDR[4], frac_em, frac_had;
-    bool HiggsTagged ;
-    size_t n_tracks ;
+    double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass,
+    EFC[6], EFCDR[4], frac_em, frac_had, nsub[5], nsub_ratio[4];
+    bool    HiggsTagged        ;
+    size_t  n_tracks           ;
     indices index_constituents ;
     NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons ;
     fastjet::PseudoJet        prunedjet , triple   , Higgs       , taucandidate ;
 private:
-    void read_extra_variables (const DelphesReader & in) {
-        n_tracks = in.count_tracks           (index_constituents) ;
-        frac_em  = in.electromagnetic_energy (index_constituents) ;
-        frac_had = in.hadronic_energy        (index_constituents) ;
+    inline void clear                   (                                     ) {
+        t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ; index_constituents.clear() ;
+        filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0 ;
+        unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
+        for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
+        for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
+        for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
+        for (size_t i=0;i<4;i++) { nsub_ratio [i] = -10000.0 ; }
     }
-    inline void get_constituent_indices (const fastjet::PseudoJet & this_jet) {
-        NewHEPHeaders::pseudojets vectors = this_jet.constituents();
-        const size_t limit = vectors.size(); index_constituents.resize(limit);
+    inline void read_extra_variables    ( const DelphesReader      & in       ) {
+        n_tracks = in.count_tracks           (index_constituents) ;
+        frac_em  = in.electromagnetic_energy (index_constituents) / taucandidate.E () ;
+        frac_had = in.hadronic_energy        (index_constituents) / taucandidate.E () ;
+    }
+    inline void get_constituent_indices ( const fastjet::PseudoJet & this_jet ) {
+        NewHEPHeaders::pseudojets vectors=this_jet.constituents();
+        const size_t limit=vectors.size(); index_constituents.resize(limit);
         for (size_t i=0;i<limit;i++) {index_constituents[i]=vectors[i].user_index();}
     }
-    inline void EvalEnergyCorrelation (const fastjet::PseudoJet & this_jet) {
+    inline void EvalEnergyCorrelation   ( fastjet::PseudoJet & this_jet       ) {
         using namespace fastjet          ;
         using namespace fastjet::contrib ;
         const double beta    = 2.0                    ;
-        const auto   measure = EnergyCorrelator::pt_R ;
-        EnergyCorrelator ECF0(0,beta,measure); EFC[0]=ECF0(this_jet);
-        EnergyCorrelator ECF1(1,beta,measure); EFC[1]=ECF1(this_jet);
-        EnergyCorrelator ECF2(2,beta,measure); EFC[2]=ECF2(this_jet);
-        EnergyCorrelator ECF3(3,beta,measure); EFC[3]=ECF3(this_jet);
-        EnergyCorrelator ECF4(4,beta,measure); EFC[4]=ECF4(this_jet);
-        EnergyCorrelator ECF5(5,beta,measure); EFC[5]=ECF5(this_jet);
-        for (size_t i=0;i<4;i++) if (EFC[i+1]>epsilon) {EFCDR[i]=(EFC[i]+EFC[i+2])/EFC[i+1];}
+        if(this_jet.constituents().size()>0){
+            /* The energy correlation part: */ {
+                const auto   measure = EnergyCorrelator::pt_R ;
+                EnergyCorrelator ECF0 ( 0, beta, measure ) ; EFC[0] = ECF0 (this_jet) ;
+                EnergyCorrelator ECF1 ( 1, beta, measure ) ; EFC[1] = ECF1 (this_jet) ;
+                EnergyCorrelator ECF2 ( 2, beta, measure ) ; EFC[2] = ECF2 (this_jet) ;
+                EnergyCorrelator ECF3 ( 3, beta, measure ) ; EFC[3] = ECF3 (this_jet) ;
+                EnergyCorrelator ECF4 ( 4, beta, measure ) ; EFC[4] = ECF4 (this_jet) ;
+                EnergyCorrelator ECF5 ( 5, beta, measure ) ; EFC[5] = ECF5 (this_jet) ;
+                for (size_t i=0;i<4;i++) if (EFC[i+1]>epsilon) {EFCDR[i]=(EFC[i]+EFC[i+2])/EFC[i+1];}
+            }
+            /* The NSubjettiness part: */ {
+                Nsubjettiness nSub1 ( 1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
+                Nsubjettiness nSub2 ( 2, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
+                Nsubjettiness nSub3 ( 3, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
+                Nsubjettiness nSub4 ( 4, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
+                Nsubjettiness nSub5 ( 5, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
+                nsub[0]=nSub1(this_jet); nsub[1]=nSub2(this_jet); nsub[2]=nSub3(this_jet);
+                nsub[3]=nSub4(this_jet); nsub[4]=nSub5(this_jet);
+                for(size_t i=0;i<4;i++) if(nsub[i]>epsilon) {nsub_ratio[i]=nsub[i+1]/nsub[i];}
+            }
+        }
     }
-    inline void find_structures (const fastjet::PseudoJet & this_jet) {
+    inline void find_structures         ( const fastjet::PseudoJet & this_jet ) {
         fastjet::PseudoJet parent1(0,0,0,0), parent2(0,0,0,0);
         bool haskid=this_jet.validated_cs()->has_parents(this_jet,parent1,parent2);
         if(haskid) {
@@ -184,7 +229,7 @@ private:
             }
         }
     }
-    inline void run_filter () {
+    inline void run_filter              (                                     ) {
         t_parts    = sorted_by_pt  (t_parts)               ;
         triple     = fastjet::join (t_parts[0],t_parts[1]) ;
         filt_tau_R = std::min ( Rfilt , 0.5 * sqrt (t_parts[0].squared_distance(t_parts[1])) ) ;
@@ -192,15 +237,15 @@ private:
         fastjet::Filter filter (filtering_def,fastjet::SelectorNHardest(nfilt)*fastjet::SelectorPtMin(minpt_subjet)) ;
         taucandidate    = filter         (triple) ;
         filteredjetmass = taucandidate.m ()       ;
-        EvalEnergyCorrelation   ( taucandidate ) ;
-        get_constituent_indices ( taucandidate ) ;
+        EvalEnergyCorrelation   ( taucandidate )  ;
+        get_constituent_indices ( taucandidate )  ;
     }
-    inline void run_recluster () {
+    inline void run_recluster           (                                     ) {
         fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
         fastjet::ClusterSequence cs_top_sub   (taucandidate.pieces(),reclustering) ;
         tau_subs=sorted_by_pt(cs_top_sub.exclusive_jets(2));
     }
-    inline void run_variable_evaluater (fastjet::PseudoJet&injet) {
+    inline void run_variable_evaluater  ( fastjet::PseudoJet       & injet    ) {
         HiggsTagged  = true;
         Higgs        = tau_subs[0]+tau_subs[1];
         deltah       = CPPFileIO::mymod(taucandidate.m()-mh);
@@ -211,9 +256,8 @@ private:
         prunedjet       = pruner      (triple) ;
         prunedmass      = prunedjet.m ()       ;
         unfiltered_mass = triple.m    ()       ;
-
     }
-    inline void run (fastjet::PseudoJet&injet) {
+    inline void run                     ( fastjet::PseudoJet       & injet    ) {
         clear(); find_structures(injet);
         if (t_parts.size()>1) {
             run_filter();
@@ -224,15 +268,9 @@ private:
             }
         }
     }
-    inline void clear () {
-        t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ; index_constituents.clear() ;
-        filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0 ;
-        unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
-        for (size_t i=0;i<6;i++) { EFC   [i] = -10000.0 ; }
-        for (size_t i=0;i<4;i++) { EFCDR [i] = -10000.0 ; }
-    }
 public:
-    inline void   operator () () {clear();}
+    inline void   operator () (const DelphesReader&in)   {read_extra_variables(in);}
+    inline void   operator () ()                         {clear();}
     inline double operator () (fastjet::PseudoJet&injet) {
         run(injet);
         if (HiggsTagged) {return filteredjetmass;}
@@ -246,7 +284,44 @@ public:
     ~HardSubStructureFinder(){}
 };
 
+class OutPutVariables {
+private:
+public:
 
+    double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass,
+    EFC[6], EFCDR[4], frac_em, frac_had, nsub[5], nsub_ratio[4];
+    bool    HiggsTagged        ;
+    size_t  n_tracks           ;
+    NewHEPHeaders::VECTORS::lorentz4vector <> tau_subs[2] , t_parts[2]  , tau_hadrons[2] ;
+    NewHEPHeaders::VECTORS::lorentz4vector <> prunedjet , triple , Higgs , taucandidate ;
+
+    inline void clear () {
+        t_parts[0].clearthis () ; tau_subs[0].clearthis () ; tau_hadrons[0].clearthis () ;
+        t_parts[1].clearthis () ; tau_subs[1].clearthis () ; tau_hadrons[1].clearthis () ;
+        filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0 ;
+        unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
+        for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
+        for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
+        for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
+        for (size_t i=0;i<4;i++) { nsub_ratio [i] = -10000.0 ; }
+    }
+
+    inline void operator = (HardSubStructureFinder&other) {
+        filteredjetmass = other.filteredjetmass ;
+        filt_tau_R      = other.filt_tau_R      ;
+        prunedmass      = other.prunedmass      ;
+        n_tracks        = other.n_tracks        ;
+        unfiltered_mass = 0.0                   ;
+        deltah          = 10000                 ;
+        HiggsTagged     = false                 ;
+        for (size_t i=0;i<6;i++) { EFC        [i] = other.EFC        [i] ; }
+        for (size_t i=0;i<4;i++) { EFCDR      [i] = other.EFCDR      [i] ; }
+        for (size_t i=0;i<5;i++) { nsub       [i] = other.nsub       [i] ; }
+        for (size_t i=0;i<4;i++) { nsub_ratio [i] = other.nsub_ratio [i] ; }
+    }
+    OutPutVariables  () {}
+    ~OutPutVariables () {}
+} ;
 
 class MainAnalyzer {
 private:
@@ -263,29 +338,6 @@ private:
         NewHEPHeaders::pseudojets antikt_jets=sorted_by_pt(clust_seq.inclusive_jets());
         for (size_t j=0;(j<antikt_jets.size())&&(j<2);j++) if(antikt_jets[j].perp()>200.0) {
             fastjet::PseudoJet&this_jet = antikt_jets[j];
-            using namespace fastjet::contrib;
-            double beta = 1.0;
-            Nsubjettiness         nSub1_beta1(1,   OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-            Nsubjettiness         nSub2_beta1(2,   OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-            Nsubjettiness         nSub3_beta1(3,   OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-            NsubjettinessRatio   nSub21_beta1(2,1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-            NsubjettinessRatio   nSub32_beta1(3,2, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta));
-            double  tau1_beta1 =  nSub1_beta1(this_jet);
-            double  tau2_beta1 =  nSub2_beta1(this_jet);
-            double  tau3_beta1 =  nSub3_beta1(this_jet);
-            double tau21_beta1 = nSub21_beta1(this_jet);
-            double tau32_beta1 = nSub32_beta1(this_jet);
-            beta = 2.0;
-            Nsubjettiness         nSub1_beta2(1,   OnePass_KT_Axes(), UnnormalizedMeasure(beta));
-            Nsubjettiness         nSub2_beta2(2,   OnePass_KT_Axes(), UnnormalizedMeasure(beta));
-            Nsubjettiness         nSub3_beta2(3,   OnePass_KT_Axes(), UnnormalizedMeasure(beta));
-            NsubjettinessRatio   nSub21_beta2(2,1, OnePass_KT_Axes(), UnnormalizedMeasure(beta));
-            NsubjettinessRatio   nSub32_beta2(3,2, OnePass_KT_Axes(), UnnormalizedMeasure(beta));
-            double  tau1_beta2 =  nSub1_beta2(this_jet);
-            double  tau2_beta2 =  nSub2_beta2(this_jet);
-            double  tau3_beta2 =  nSub3_beta2(this_jet);
-            double tau21_beta2 = nSub21_beta2(this_jet);
-            double tau32_beta2 = nSub32_beta2(this_jet);
             if(this_jet.m()>40){
                 HardSubStructureFinder tmpslave ;
                 OutMassHist.Fill        ( tmpslave(this_jet) ) ;
@@ -296,9 +348,9 @@ private:
                     {indices.push_back((size_t)constituents[ii].user_index());}
                     NumTracks.Fill((float)MainReader->count_tracks(indices));
                 }
-                nsubjettinesshist1.Fill ( tau1_beta1         ) ;
-                nsubjettinesshist2.Fill ( tau2_beta1         ) ;
-                nsubjettinesshist3.Fill ( tau3_beta1         ) ;
+                nsubjettinesshist1.Fill ( tmpslave.nsub_ratio[0] ) ;
+                nsubjettinesshist2.Fill ( tmpslave.nsub_ratio[1] ) ;
+                nsubjettinesshist3.Fill ( tmpslave.nsub_ratio[2] ) ;
             }
         }
     }
@@ -347,11 +399,10 @@ public:
     MainAnalyzer (std::string _OutFileName):
     OutFileName        (_OutFileName) ,
     OutMassHist        ( "OutMassHist"        , "OutMassHist"        , 100 , 20.0 , 150.0 ) ,
-    nsubjettinesshist1 ( "nsubjettinesshist1" , "nsubjettinesshist1" , 100 , -0.1 ,  30.1 ) ,
-    nsubjettinesshist2 ( "nsubjettinesshist2" , "nsubjettinesshist2" , 100 , -0.1 ,  30.1 ) ,
-    nsubjettinesshist3 ( "nsubjettinesshist3" , "nsubjettinesshist3" , 100 , -0.1 ,  30.1 ) ,
-    NumTracks          ( "NumTracks"          , "NumTracks"          , 120 , -0.1 ,  60.1 )
-    {}
+    nsubjettinesshist1 ( "nsubjettinesshist1" , "nsubjettinesshist1" , 100 , -0.1 ,   5.1 ) ,
+    nsubjettinesshist2 ( "nsubjettinesshist2" , "nsubjettinesshist2" , 100 , -0.1 ,   5.1 ) ,
+    nsubjettinesshist3 ( "nsubjettinesshist3" , "nsubjettinesshist3" , 100 , -0.1 ,   5.1 ) ,
+    NumTracks          ( "NumTracks"          , "NumTracks"          , 120 , -0.1 ,   5.1 ) {}
 
     ~MainAnalyzer(){WriteHistograms();}
 };
