@@ -33,6 +33,6 @@ int BenchmarkVectors () {
 }
 
 int main () {
-    Step2::PlotAll();
+    Step2::PlotAll2();
     return 0;
 }

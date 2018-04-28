@@ -623,13 +623,13 @@ namespace Step2 {
             }
             if(limit2>0){
                 std::sort ( vals2.begin() , vals2.begin() ) ;
-                xmin = CPPFileIO::mymin ( vals2 [0]       , xmin ) ;
-                xmax = CPPFileIO::mymax ( vals2 [limit-1] , xmax ) ;
+                xmin = CPPFileIO::mymin ( vals2 [0]        , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals2 [limit2-1] , xmax ) ;
             }
             if(limit3>0){
                 std::sort ( vals3.begin() , vals3.begin() ) ;
-                xmin = CPPFileIO::mymin ( vals3 [0]       , xmin ) ;
-                xmax = CPPFileIO::mymax ( vals3 [limit-1] , xmax ) ;
+                xmin = CPPFileIO::mymin ( vals3 [0]        , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals3 [limit3-1] , xmax ) ;
             }
         }
 
@@ -667,6 +667,117 @@ namespace Step2 {
         }
 
     }
+
+    inline void PlotHist (std::string name, std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3, std::vector<float>&vals4) {
+
+        float xmin , xmax              ;
+
+        std::string name2 = name + "2" ;
+        std::string name3 = name + "3" ;
+        std::string name4 = name + "4" ;
+
+        size_t limit  = vals.size  ()  ;
+        size_t limit2 = vals2.size ()  ;
+        size_t limit3 = vals3.size ()  ;
+        size_t limit4 = vals4.size ()  ;
+
+        /* Check for limits of histograms: */ {
+            if(limit>0){
+                std::sort ( vals.begin() , vals.end() ) ;
+                xmin = vals [0]       ;
+                xmax = vals [limit-1] ;
+            }
+            if(limit2>0){
+                std::sort ( vals2.begin() , vals2.begin() ) ;
+                xmin = CPPFileIO::mymin ( vals2 [0]        , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals2 [limit2-1] , xmax ) ;
+            }
+            if(limit3>0){
+                std::sort ( vals3.begin() , vals3.begin() ) ;
+                xmin = CPPFileIO::mymin ( vals3 [0]        , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals3 [limit3-1] , xmax ) ;
+            }
+            if(limit4>0){
+                std::sort ( vals4.begin() , vals4.begin() ) ;
+                xmin = CPPFileIO::mymin ( vals4 [0]        , xmin ) ;
+                xmax = CPPFileIO::mymax ( vals4 [limit4-1] , xmax ) ;
+            }
+        }
+
+        TH1F hist  ( & ( name  [0] ) , & ( name  [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist2 ( & ( name2 [0] ) , & ( name2 [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist3 ( & ( name3 [0] ) , & ( name3 [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist4 ( & ( name4 [0] ) , & ( name4 [0] ) , 100 , xmin , xmax ) ;
+
+        /* prepare the histograms: */ {
+            /* Fill the histograms: */ {
+                for ( size_t i = 0 ; i < vals.size  () ; i++ ) { hist.Fill  ( vals  [i] ) ; }
+                for ( size_t i = 0 ; i < vals2.size () ; i++ ) { hist2.Fill ( vals2 [i] ) ; }
+                for ( size_t i = 0 ; i < vals3.size () ; i++ ) { hist3.Fill ( vals3 [i] ) ; }
+                for ( size_t i = 0 ; i < vals4.size () ; i++ ) { hist4.Fill ( vals4 [i] ) ; }
+            }
+            /* Rescale and color the histograms: */ {
+                hist.Scale  ( 1.0 / hist.Integral  () ) ; hist.SetLineWidth  (3) ; hist.SetLineColor  (TColor::GetColor("#990000"));
+                hist2.Scale ( 1.0 / hist2.Integral () ) ; hist2.SetLineWidth (3) ; hist2.SetLineColor (TColor::GetColor("#009900"));
+                hist3.Scale ( 1.0 / hist3.Integral () ) ; hist3.SetLineWidth (3) ; hist3.SetLineColor (TColor::GetColor("#000099"));
+                hist4.Scale ( 1.0 / hist4.Integral () ) ; hist4.SetLineWidth (3) ; hist4.SetLineColor (TColor::GetColor("#000000"));
+            }
+            /* Set the maximum */ {
+                float x1 = hist.GetBinContent  ( hist.GetMaximumBin  () ) ;
+                float x2 = hist2.GetBinContent ( hist2.GetMaximumBin () ) ;
+                float x3 = hist3.GetBinContent ( hist3.GetMaximumBin () ) ;
+                float x4 = hist4.GetBinContent ( hist4.GetMaximumBin () ) ;
+                float x  = CPPFileIO::mymax ( CPPFileIO::mymax ( CPPFileIO::mymax ( x1 , x2 ) , x3 ) , x4 ) ;
+                hist.SetMaximum(x); hist2.SetMaximum(x); hist3.SetMaximum(x); hist4.SetMaximum(x);
+            }
+        }
+
+        /* Draw and save the histograms: */ {
+            TCanvas C;
+            hist.Draw  ("hist same") ;
+            hist2.Draw ("hist same") ;
+            hist3.Draw ("hist same") ;
+            hist4.Draw ("hist same") ;
+            name = name + ".pdf";
+            C.SaveAs(&(name[0]));
+        }
+
+    }
+
+    class PlotAll2 {
+    private:
+        CPPFileIO::FileArray <Step1::OutPutVariables> reader1 , reader2 , reader3 , reader4 ;
+        size_t Limit1 , Limit2 , Limit3 , Limit4 ;
+        Step1::OutPutVariables *element1 , *element2 , *element3 , *element4 ;
+        inline void Plot_Masses () {
+
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].frac_had;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].frac_had;}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].frac_had;}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_had;}
+
+            PlotHist("Masses",Masses1,Masses2,Masses3,Masses4);
+        }
+    public:
+        PlotAll2():
+        reader1 ( "./SKIM_DATA/BoostedZ/WithMPI"          ),
+        reader2 ( "./SKIM_DATA/BoostedZToNuNuBar/WithMPI" ),
+        reader3 ( "./SKIM_DATA/BoostedZToBBbar/WithMPI"   ),
+        reader4 ( "./SKIM_DATA/UnBoostedZ/WithMPI"        ),
+        Limit1(reader1.size()), Limit2(reader2.size()),
+        Limit3(reader3.size()), Limit4(reader4.size()),
+        element1(&(reader1(0,Limit1))), element2(&(reader2(0,Limit2))),
+        element3(&(reader3(0,Limit3))), element4(&(reader4(0,Limit4)))
+        {Plot_Masses();}
+
+        ~PlotAll2(){}
+    } ;
+
 
     class PlotAll {
     private:
