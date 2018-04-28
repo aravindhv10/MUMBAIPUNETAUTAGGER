@@ -384,8 +384,8 @@ namespace Step1 {
         /* Get the names of root files: */ {
             for(size_t i=0;i<16;i++){
                 char tmp[512] ;
-                sprintf (tmp,"./%s/%ld/NoISRout.root",&(name[0]),i+1) ; NoISRList[i]   = std::string(tmp);
-                sprintf (tmp,"./%s/%ld/out.root",&(name[0]),i+1)      ; WithISRList[i] = std::string(tmp);
+                sprintf (tmp,"./DATA/%s/%ld/NoISRout.root",&(name[0]),i+1) ; NoISRList[i]   = std::string(tmp);
+                sprintf (tmp,"./DATA/%s/%ld/out.root",&(name[0]),i+1)      ; WithISRList[i] = std::string(tmp);
             }
         }
         /* Prepare the output: */ {
@@ -597,10 +597,11 @@ namespace Step2 {
             }
         }
         /* Draw and save the histograms: */ {
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
             TCanvas C;
             hist.Draw  ("hist same") ;
             hist2.Draw ("hist same") ;
-            name = name + ".pdf";
+            name = "./GRAPHS/" + name + ".pdf";
             C.SaveAs(&(name[0]));
         }
     }
@@ -658,11 +659,12 @@ namespace Step2 {
         }
 
         /* Draw and save the histograms: */ {
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
             TCanvas C;
             hist.Draw  ("hist same") ;
             hist2.Draw ("hist same") ;
             hist3.Draw ("hist same") ;
-            name = name + ".pdf";
+            name = "./GRAPHS/" + name + ".pdf";
             C.SaveAs(&(name[0]));
         }
 
@@ -733,12 +735,13 @@ namespace Step2 {
         }
 
         /* Draw and save the histograms: */ {
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
             TCanvas C;
             hist.Draw  ("hist same") ;
             hist2.Draw ("hist same") ;
             hist3.Draw ("hist same") ;
             hist4.Draw ("hist same") ;
-            name = name + ".pdf";
+            name = "./GRAPHS/" + name + ".pdf";
             C.SaveAs(&(name[0]));
         }
 
@@ -750,19 +753,17 @@ namespace Step2 {
         size_t Limit1 , Limit2 , Limit3 , Limit4 ;
         Step1::OutPutVariables *element1 , *element2 , *element3 , *element4 ;
         inline void Plot_Masses () {
-
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
             std::vector <float> Masses3; Masses3.resize(Limit3);
             std::vector <float> Masses4; Masses4.resize(Limit4);
-
-            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].frac_had;}
-            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].frac_had;}
-            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].frac_had;}
-            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_had;}
-
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].filteredjetmass;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].filteredjetmass;}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].filteredjetmass;}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].filteredjetmass;}
             PlotHist("Masses",Masses1,Masses2,Masses3,Masses4);
         }
+
     public:
         PlotAll2():
         reader1 ( "./SKIM_DATA/BoostedZ/WithMPI"          ),
