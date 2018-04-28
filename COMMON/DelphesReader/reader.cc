@@ -339,6 +339,7 @@ namespace Step1 {
         DelphesReader * MainReader;
         std::string OutFileName;
         CPPFileIO::FileVector<OutPutVariables>Writer;
+    private:
         inline void Analyze(size_t i){
             NewHEPHeaders::pseudojets&jetvectors=MainReader[0](i);
             fastjet::JetAlgorithm algorithm=fastjet::antikt_algorithm;
@@ -370,7 +371,6 @@ namespace Step1 {
             DelphesReader tmpreader(_delphesfilename);
             MainReader=&tmpreader; Analyze();
         }
-
     public:
         inline void operator()(std::string _delphesfilename){AnalyzeNewFile(_delphesfilename);}
         MainAnalyzer (std::string _OutFileName): OutFileName (_OutFileName), Writer(OutFileName) {}
@@ -409,6 +409,7 @@ namespace Step1 {
         if(forker.InKid()){ProcessType("BoostedZToNuNuBar");}
         if(forker.InKid()){ProcessType("BoostedZ");}
         if(forker.InKid()){ProcessType("UnBoostedZ");}
+        if(forker.InKid()){ProcessType("BoostedZToBBbar");}
     }
 }
 
