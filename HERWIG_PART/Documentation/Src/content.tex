@@ -1,5 +1,8 @@
+\section{Introduction}
 The main {\tt GitHub} link for this work is \url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER}.
-\section{Installing Herwig-7}
+The latest version of this document can always be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/ReadME.pdf}''.
+The sources for this document (including the figures in case you want to use them anywhere) can be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/HERWIG_PART/Documentation}''.
+\subsection{Installing Herwig-7}
 To install Herwig, please make sure you have a {\bf proper} root installation (and source "{\tt thisroot.sh}" if it is installed in non-standard location) as Herwig uses {\tt libpyroot}.
 Download and install {\tt Herwig} by running the script \url{https://herwig.hepforge.org/herwig-bootstrap}:
 \begin{center}
@@ -102,6 +105,9 @@ you can extract this:
         {\tt gzip -d "./Events/run\_01\_decayed\_1/unweighted\_events.lhe.gz"}
     \end{minipage}
 \end{center}
+
+The complete list of LHE files generated using the above methods can be downloaded from ``\url{https://drive.google.com/file/d/1sVQSYUDPqSB0vgh84Y8IIOucBSMMr9rL/view?usp=sharing}''
+
 \subsection{Showering:}
 Move the LHE file to another directory where you want to do the showering:
 \begin{center}
@@ -152,9 +158,9 @@ By default, {\tt Herwig} does not force $\tau$ to decay hadronically. This can b
 \begin{center}
     \begin{minipage}{0.8\textwidth}
         {\tt
-            set /Herwig/Particles/tau+/tau+->nu\_taubar,nu\_e,e+;:OnOff Off
-            set /Herwig/Particles/tau+/tau+->nu\_taubar,nu\_mu,mu+;:OnOff Off
-            set /Herwig/Particles/tau-/tau-->nu\_tau,nu\_ebar,e-;:OnOff Off
+            set /Herwig/Particles/tau+/tau+->nu\_taubar,nu\_e,e+;:OnOff Off\\
+            set /Herwig/Particles/tau+/tau+->nu\_taubar,nu\_mu,mu+;:OnOff Off\\
+            set /Herwig/Particles/tau-/tau-->nu\_tau,nu\_ebar,e-;:OnOff Off\\
             set /Herwig/Particles/tau-/tau-->nu\_tau,nu\_mubar,mu-;:OnOff Off
         }
     \end{minipage}
@@ -164,4 +170,45 @@ A sample card to run with (\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGG
 
 Example for an extremely simple reader is available in \url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}.
 
-\subsection{Reading the root files:}
+
+
+\section{Reading the root files and some results:}
+
+We use the following color convention for graphs through out the document:
+\begin{center}
+    \includegraphics[width=0.5\textwidth]{./ColorConventions.pdf}
+\end{center}
+The main reader program can be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}''.
+We present some simple results obtained using these methods (Note: we use the BDRS+filtering method on the jet to identify hard substructures).
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{./EFrac.pdf}
+        \caption{ Electromagnetic energy fraction of the jet, normalized to unit area under the curve. }
+        \label{fig:EFrac}
+    \end{center}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{./HFrac.pdf}
+        \caption{ Hadronic energy fraction of the jet, normalized to unit area under the curve. }
+        \label{fig:HFrac}
+    \end{center}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{./NTracks.pdf}
+        \caption{ Number of tracks in the jet, normalized to unit area under the curve. }
+        \label{fig:NTracks}
+    \end{center}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{./Masses.pdf}
+        \caption{ Masses of the jet after BDRS and filtering steps, normalized to unit area under the curve. }
+        \label{fig:Masses}
+    \end{center}
+\end{figure}

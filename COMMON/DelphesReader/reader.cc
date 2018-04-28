@@ -752,6 +752,7 @@ namespace Step2 {
         CPPFileIO::FileArray <Step1::OutPutVariables> reader1 , reader2 , reader3 , reader4 ;
         size_t Limit1 , Limit2 , Limit3 , Limit4 ;
         Step1::OutPutVariables *element1 , *element2 , *element3 , *element4 ;
+
         inline void Plot_Masses () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -764,6 +765,42 @@ namespace Step2 {
             PlotHist("Masses",Masses1,Masses2,Masses3,Masses4);
         }
 
+        inline void Plot_EFrac () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].frac_em;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].frac_em;}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].frac_em;}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_em;}
+            PlotHist("EFrac",Masses1,Masses2,Masses3,Masses4);
+        }
+
+        inline void Plot_HFrac () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].frac_had;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].frac_had;}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].frac_had;}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_had;}
+            PlotHist("HFrac",Masses1,Masses2,Masses3,Masses4);
+        }
+
+        inline void Plot_NTracks () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].n_tracks;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].n_tracks;}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].n_tracks;}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].n_tracks;}
+            PlotHist("NTracks",Masses1,Masses2,Masses3,Masses4);
+        }
+
     public:
         PlotAll2():
         reader1 ( "./SKIM_DATA/BoostedZ/WithMPI"          ),
@@ -774,7 +811,7 @@ namespace Step2 {
         Limit3(reader3.size()), Limit4(reader4.size()),
         element1(&(reader1(0,Limit1))), element2(&(reader2(0,Limit2))),
         element3(&(reader3(0,Limit3))), element4(&(reader4(0,Limit4)))
-        {Plot_Masses();}
+        {Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();}
 
         ~PlotAll2(){}
     } ;
