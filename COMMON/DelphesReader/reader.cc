@@ -415,130 +415,6 @@ namespace Step1 {
 
 namespace Step2 {
 
-    class MyHist1D {
-    private:
-        std::string histname      ;
-        std::string lefthistname  ;
-        TH1F        LH            ;
-    public:
-        inline void Fill  (double a) {if(a>-90.0){LH.Fill(a);}}
-        inline void Write () {
-            TCanvas C;
-            LH.Scale(1.0/LH.Integral());
-            LH.SetLineWidth(3);
-            int binmaxL = LH.GetMaximumBin ()        ;
-            double xL   = LH.GetBinContent (binmaxL) ;
-            double maxy = xL;
-            LH.SetMaximum(maxy);
-            LH.SetLineColor(TColor::GetColor("#990000"));
-            LH.Draw("hist same");
-            mkdir((const char*)"./GRAPHS",(mode_t)0755);
-            std::string outname = "./GRAPHS/" + histname + ".pdf" ;
-            C.SaveAs(&(outname[0]));
-        }
-        MyHist1D  (std::string _histname, size_t nbins, double min, double max):
-        histname(_histname),
-        lefthistname(_histname),
-        LH(&(lefthistname[0]),&(histname[0]),nbins,min,max) {}
-        ~MyHist1D (){Write();}
-    };
-
-    class MyHist2D {
-    private:
-        std::string histname  ;
-        std::string histname1 ;
-        std::string histname2 ;
-        TH1F H1, H2;
-    public:
-        inline void Fill1 (double a) {if(a>-90.0){H1.Fill(a);}}
-        inline void Fill2 (double a) {if(a>-90.0){H2.Fill(a);}}
-        inline void Write () {
-            TCanvas C;
-            H1.Scale(1.0/H1.Integral());
-            H2.Scale(1.0/H2.Integral());
-            H1.SetLineWidth(3); H2.SetLineWidth(3);
-            int binmax1 = H1.GetMaximumBin ()        ;
-            int binmax2 = H2.GetMaximumBin ()        ;
-            double x1   = H1.GetBinContent (binmax1) ;
-            double x2   = H2.GetBinContent (binmax2) ;
-            double maxy = CPPFileIO::mymax (x1,x2)   ;
-            H1.SetMaximum(maxy); H2.SetMaximum(maxy);
-            H1.SetLineColor(TColor::GetColor("#990000"));
-            H2.SetLineColor(TColor::GetColor("#000099"));
-            H1.Draw("hist same"); H2.Draw("hist same");
-            mkdir((const char*)"./GRAPHS",(mode_t)0755);
-            std::string outname = "./GRAPHS/" + histname + ".pdf" ;
-            C.SaveAs(&(outname[0]));
-        }
-        MyHist2D  (std::string _histname, size_t nbins, double min, double max):
-        histname(_histname),
-        histname1("H1"+_histname), histname2("H2"+_histname),
-        H1(&(histname1[0]),&(histname[0]),nbins,min,max),
-        H2(&(histname2[0]),&(histname[0]),nbins,min,max) {}
-        ~MyHist2D () {Write();}
-    };
-
-    class MyHist3D {
-    private:
-        std::string histname ;
-        std::string H1name, H2name, H3name  ;
-        TH1F H1, H2, H3 ;
-    public:
-        bool WriteStacked;
-        inline void H1Fill (double a) {if(a>-90.0){H1.Fill(a);}}
-        inline void H2Fill (double a) {if(a>-90.0){H2.Fill(a);}}
-        inline void H3Fill (double a) {if(a>-90.0){H3.Fill(a);}}
-
-        inline void Write () {
-            H1.Scale(1.0/H1.Integral());
-            H2.Scale(1.0/H2.Integral());
-            H3.Scale(1.0/H3.Integral());
-
-            int binmax1 = H1.GetMaximumBin () ;
-            int binmax2 = H2.GetMaximumBin () ;
-            int binmax3 = H3.GetMaximumBin () ;
-
-            double x=CPPFileIO::mymax
-            (H3.GetBinContent(binmax3),CPPFileIO::mymax(H1.GetBinContent(binmax1),H2.GetBinContent(binmax2)));
-
-            H1.SetLineColor(TColor::GetColor("#990000"));
-            H2.SetLineColor(TColor::GetColor("#009900"));
-            H3.SetLineColor(TColor::GetColor("#000099"));
-            H1.SetMaximum     (x) ; H2.SetMaximum     (x) ; H3.SetMaximum     (x) ;
-            H1.SetLineWidth   (3) ; H2.SetLineWidth   (3) ; H3.SetLineWidth   (3) ;
-            TCanvas C;
-            H1.Draw ("hist same") ; H2.Draw ("hist same") ; H3.Draw ("hist same") ;
-            mkdir((const char*)"./GRAPHS",(mode_t)0755);
-            std::string outname = "./GRAPHS/" + histname + ".pdf" ;
-            C.SaveAs(&(outname[0]));
-        }
-
-        inline void WriteStack () {
-            H1.SetLineColor(TColor::GetColor("#990000")); H1.SetFillColor(TColor::GetColor("#990000"));
-            H2.SetLineColor(TColor::GetColor("#009900")); H2.SetFillColor(TColor::GetColor("#009900"));
-            H3.SetLineColor(TColor::GetColor("#000099")); H3.SetFillColor(TColor::GetColor("#000099"));
-            H1.SetLineWidth(3); H2.SetLineWidth(3); H3.SetLineWidth(3);
-            THStack hs ("hs","Stacked 1D histograms") ;
-            hs.Add(&H1);
-            hs.Add(&H2);
-            hs.Add(&H3);
-            mkdir((const char*)"./GRAPHS",(mode_t)0755);
-            TCanvas C; hs.Draw(); std::string outname = "./GRAPHS/" + histname + ".pdf" ;
-            C.SaveAs(&(outname[0]));
-        }
-
-        MyHist3D  (std::string _histname, size_t nbins, double min, double max):
-        histname(_histname),
-        H1name("H1"+histname), H2name("H2"+histname), H3name("H3"+histname),
-        H1(&(H1name[0]),&(histname[0]),nbins,min,max),
-        H2(&(H2name[0]),&(histname[0]),nbins,min,max),
-        H3(&(H3name[0]),&(histname[0]),nbins,min,max) {WriteStacked=false;}
-        ~MyHist3D (){
-            if(WriteStacked){WriteStack();}
-            else{Write();}
-        }
-    } ;
-
     inline void PlotHist (std::string name, std::vector<float>&vals) {
         size_t limit=vals.size();
         if(limit>0){
@@ -560,7 +436,10 @@ namespace Step2 {
         }
     }
 
-    inline void PlotHist (std::string name, std::vector<float>&vals, std::vector<float>&vals2) {
+    inline void PlotHist (
+        std::string name,
+        std::vector<float>&vals, std::vector<float>&vals2
+    ) {
         TCanvas C                      ;
         size_t limit  = vals.size  ()  ;
         size_t limit2 = vals2.size ()  ;
@@ -606,16 +485,16 @@ namespace Step2 {
         }
     }
 
-    inline void PlotHist (std::string name, std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3) {
-
+    inline void PlotHist (
+        std::string name,
+        std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3
+    ) {
         float xmin , xmax              ;
         std::string name2 = name + "2" ;
         std::string name3 = name + "3" ;
-
         size_t limit  = vals.size  ()  ;
         size_t limit2 = vals2.size ()  ;
         size_t limit3 = vals3.size ()  ;
-
         /* Check for limits of histograms: */ {
             if(limit>0){
                 std::sort ( vals.begin() , vals.end() ) ;
@@ -633,11 +512,9 @@ namespace Step2 {
                 xmax = CPPFileIO::mymax ( vals3 [limit3-1] , xmax ) ;
             }
         }
-
         TH1F hist  ( & ( name  [0] ) , & ( name  [0] ) , 100 , xmin , xmax ) ;
         TH1F hist2 ( & ( name2 [0] ) , & ( name2 [0] ) , 100 , xmin , xmax ) ;
         TH1F hist3 ( & ( name3 [0] ) , & ( name3 [0] ) , 100 , xmin , xmax ) ;
-
         /* prepare the histograms: */ {
             /* Fill the histograms: */ {
                 for ( size_t i = 0 ; i < vals.size  () ; i++ ) { hist.Fill  ( vals  [i] ) ; }
@@ -657,7 +534,6 @@ namespace Step2 {
                 hist.SetMaximum(x); hist2.SetMaximum(x); hist3.SetMaximum(x);
             }
         }
-
         /* Draw and save the histograms: */ {
             mkdir((const char*)"./GRAPHS",(mode_t)0755);
             TCanvas C;
@@ -667,50 +543,48 @@ namespace Step2 {
             name = "./GRAPHS/" + name + ".pdf";
             C.SaveAs(&(name[0]));
         }
-
     }
 
-    inline void PlotHist (std::string name, std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3, std::vector<float>&vals4) {
-
-        float xmin , xmax              ;
-
+    inline void PlotHist (
+        std::string name,
+        std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3, std::vector<float>&vals4,
+        float xmin=0 , float xmax=-1
+    ) {
         std::string name2 = name + "2" ;
         std::string name3 = name + "3" ;
         std::string name4 = name + "4" ;
-
         size_t limit  = vals.size  ()  ;
         size_t limit2 = vals2.size ()  ;
         size_t limit3 = vals3.size ()  ;
         size_t limit4 = vals4.size ()  ;
-
         /* Check for limits of histograms: */ {
-            if(limit>0){
-                std::sort ( vals.begin() , vals.end() ) ;
-                xmin = vals [0]       ;
-                xmax = vals [limit-1] ;
-            }
-            if(limit2>0){
-                std::sort ( vals2.begin() , vals2.begin() ) ;
-                xmin = CPPFileIO::mymin ( vals2 [0]        , xmin ) ;
-                xmax = CPPFileIO::mymax ( vals2 [limit2-1] , xmax ) ;
-            }
-            if(limit3>0){
-                std::sort ( vals3.begin() , vals3.begin() ) ;
-                xmin = CPPFileIO::mymin ( vals3 [0]        , xmin ) ;
-                xmax = CPPFileIO::mymax ( vals3 [limit3-1] , xmax ) ;
-            }
-            if(limit4>0){
-                std::sort ( vals4.begin() , vals4.begin() ) ;
-                xmin = CPPFileIO::mymin ( vals4 [0]        , xmin ) ;
-                xmax = CPPFileIO::mymax ( vals4 [limit4-1] , xmax ) ;
+            if(xmin>xmax) {
+                if(limit>0){
+                    std::sort ( vals.begin() , vals.end() ) ;
+                    xmin = vals [0]       ;
+                    xmax = vals [limit-1] ;
+                }
+                if(limit2>0){
+                    std::sort ( vals2.begin() , vals2.begin() ) ;
+                    xmin = CPPFileIO::mymin ( vals2 [0]        , xmin ) ;
+                    xmax = CPPFileIO::mymax ( vals2 [limit2-1] , xmax ) ;
+                }
+                if(limit3>0){
+                    std::sort ( vals3.begin() , vals3.begin() ) ;
+                    xmin = CPPFileIO::mymin ( vals3 [0]        , xmin ) ;
+                    xmax = CPPFileIO::mymax ( vals3 [limit3-1] , xmax ) ;
+                }
+                if(limit4>0){
+                    std::sort ( vals4.begin() , vals4.begin() ) ;
+                    xmin = CPPFileIO::mymin ( vals4 [0]        , xmin ) ;
+                    xmax = CPPFileIO::mymax ( vals4 [limit4-1] , xmax ) ;
+                }
             }
         }
-
         TH1F hist  ( & ( name  [0] ) , & ( name  [0] ) , 100 , xmin , xmax ) ;
         TH1F hist2 ( & ( name2 [0] ) , & ( name2 [0] ) , 100 , xmin , xmax ) ;
         TH1F hist3 ( & ( name3 [0] ) , & ( name3 [0] ) , 100 , xmin , xmax ) ;
         TH1F hist4 ( & ( name4 [0] ) , & ( name4 [0] ) , 100 , xmin , xmax ) ;
-
         /* prepare the histograms: */ {
             /* Fill the histograms: */ {
                 for ( size_t i = 0 ; i < vals.size  () ; i++ ) { hist.Fill  ( vals  [i] ) ; }
@@ -733,7 +607,6 @@ namespace Step2 {
                 hist.SetMaximum(x); hist2.SetMaximum(x); hist3.SetMaximum(x); hist4.SetMaximum(x);
             }
         }
-
         /* Draw and save the histograms: */ {
             mkdir((const char*)"./GRAPHS",(mode_t)0755);
             TCanvas C;
@@ -744,7 +617,6 @@ namespace Step2 {
             name = "./GRAPHS/" + name + ".pdf";
             C.SaveAs(&(name[0]));
         }
-
     }
 
     class PlotAll2 {
@@ -801,18 +673,91 @@ namespace Step2 {
             PlotHist("NTracks",Masses1,Masses2,Masses3,Masses4);
         }
 
+        inline void Plot_nsub (size_t j) {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].nsub[j];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].nsub[j];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].nsub[j];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].nsub[j];}
+
+            char tmp[512];
+            sprintf(tmp,"NSub%ld",j+1);
+            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4,0.0,2.0);
+        }
+        inline void Plot_nsub ()
+        {Plot_nsub(0);Plot_nsub(1);Plot_nsub(2);Plot_nsub(3);Plot_nsub(4);}
+
+        inline void Plot_nsub_ratio (size_t j) {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].nsub_ratio[j];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].nsub_ratio[j];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].nsub_ratio[j];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].nsub_ratio[j];}
+            char tmp[512];
+            sprintf(tmp,"NSubRatio%ld",j+1);
+            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4,0.0,2.0);
+        }
+        inline void Plot_nsub_ratio ()
+        {Plot_nsub_ratio(0);Plot_nsub_ratio(1);Plot_nsub_ratio(2);Plot_nsub_ratio(3);}
+
+        inline void Plot_ECorrDR (size_t j) {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].EFCDR[j];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].EFCDR[j];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].EFCDR[j];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].EFCDR[j];}
+
+            char tmp[512];
+            sprintf(tmp,"ECorrDR%ld",j+1);
+            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4,0.0,2.0);
+        }
+        inline void Plot_ECorrDR ()
+        {Plot_ECorrDR(0);Plot_ECorrDR(1);Plot_ECorrDR(2);Plot_ECorrDR(3);}
+
+        inline void Plot_ECorr (size_t j) {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].EFC[j];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].EFC[j];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].EFC[j];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].EFC[j];}
+            if(false){
+                for(size_t i=0;i<Limit1;i++){printf("DEBUG1: %e\n",element1[i].EFC[j]);}
+                for(size_t i=0;i<Limit2;i++){printf("DEBUG1: %e\n",element2[i].EFC[j]);}
+                for(size_t i=0;i<Limit3;i++){printf("DEBUG1: %e\n",element3[i].EFC[j]);}
+                for(size_t i=0;i<Limit4;i++){printf("DEBUG1: %e\n",element4[i].EFC[j]);}
+            }
+            char tmp[512];
+            sprintf(tmp,"ECorr%ld",j+1);
+            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
+        }
+        inline void Plot_ECorr ()
+        {Plot_ECorr(0);Plot_ECorr(1);Plot_ECorr(2);Plot_ECorr(3);Plot_ECorr(4);Plot_ECorr(5);}
+
     public:
         PlotAll2():
-        reader1 ( "./SKIM_DATA/BoostedZ/WithMPI"          ),
-        reader2 ( "./SKIM_DATA/BoostedZToNuNuBar/WithMPI" ),
-        reader3 ( "./SKIM_DATA/BoostedZToBBbar/WithMPI"   ),
-        reader4 ( "./SKIM_DATA/UnBoostedZ/WithMPI"        ),
-        Limit1(reader1.size()), Limit2(reader2.size()),
-        Limit3(reader3.size()), Limit4(reader4.size()),
-        element1(&(reader1(0,Limit1))), element2(&(reader2(0,Limit2))),
-        element3(&(reader3(0,Limit3))), element4(&(reader4(0,Limit4)))
-        {Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();}
-
+        reader1 ( "./SKIM_DATA/BoostedZ/WithMPI"          ) ,
+        reader2 ( "./SKIM_DATA/BoostedZToNuNuBar/WithMPI" ) ,
+        reader3 ( "./SKIM_DATA/BoostedZToBBbar/WithMPI"   ) ,
+        reader4 ( "./SKIM_DATA/UnBoostedZ/WithMPI"        ) ,
+        Limit1(reader1.size()) , Limit2(reader2.size()) ,
+        Limit3(reader3.size()) , Limit4(reader4.size()) ,
+        element1(&(reader1(0,Limit1))) , element2(&(reader2(0,Limit2))) ,
+        element3(&(reader3(0,Limit3))) , element4(&(reader4(0,Limit4))) {
+            Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();
+            Plot_ECorrDR();Plot_ECorr();Plot_nsub_ratio();Plot_nsub();
+        }
         ~PlotAll2(){}
     } ;
 
