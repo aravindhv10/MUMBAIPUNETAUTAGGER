@@ -102,8 +102,7 @@ you can extract this:
         {\tt gzip -d "./Events/run\_01\_decayed\_1/unweighted\_events.lhe.gz"}
     \end{minipage}
 \end{center}
-\subsection{Showering:}
-Move the LHE file to another directory where you want to do the showering:
+and move it to another directory where you want to do the showering:
 \begin{center}
     \begin{minipage}{0.8\textwidth}
         {\tt
@@ -119,49 +118,12 @@ now you will need to activate {\tt Herwig} (note, {\tt <HerwigInstall>} needs to
     \end{minipage}
 \end{center}
 
-Once this is done, download the file ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHEWithISR.in}'' to the current directory (\textasciitilde/shower). In LHE.in, edit the line:
+Once this is done, download the file ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHE.in}'' to the current directory (\textasciitilde/shower). In LHE.in, edit the line:
 \begin{center}
     \begin{minipage}{0.7\textwidth}
         {\tt set LesHouchesReader:FileName unweighted\_events.lhe}
     \end{minipage}
 \end{center}
-and change ``{\tt unweighted\_events.lhe}'' to the LHE file you want to shower.
-You can also edit the PDF choices if you want (note that you may need to download the appropriate pdf fits manually using {\tt lhapdf} installed in the {\tt <HerwigInstall>} directory).
+ and change unweighted_events.lhe to the LHE file you want to shower. You can also edit the PDF choices if you want (note that you may need to download the appropriate pdf fits manually using lhapdf installed in the <HerwigInstall> directory).
 
 note that the lines
-\begin{center}
-    \begin{minipage}{0.7\textwidth}
-        {\tt
-            read snippets/HepMC.in\\
-            set /Herwig/Analysis/HepMC:PrintEvent 100
-        }
-    \end{minipage}
-\end{center}
-is responsible for producing the {\tt HepMC} file, you can then use {\tt Delphes} on these files. We are done. Now run {\tt Herwig}:
-\begin{center}
-    \begin{minipage}{0.7\textwidth}
-        {\tt
-            Herwig read LHE.in\\
-            Herwig run LHE.in
-        }
-    \end{minipage}
-\end{center}
-You can change underlying event, tunes, etc in the LHE.in file, explore \url{https://herwig.hepforge.org/tutorials/faq/shower.html} for details.
-
-By default, {\tt Herwig} does not force $\tau$ to decay hadronically. This can be forced, check the link: \url{https://herwig.hepforge.org/tutorials/faq/decay.html} to know how this can be done. Basically you would need:
-\begin{center}
-    \begin{minipage}{0.8\textwidth}
-        {\tt
-            set /Herwig/Particles/tau+/tau+->nu\_taubar,nu\_e,e+;:OnOff Off
-            set /Herwig/Particles/tau+/tau+->nu\_taubar,nu\_mu,mu+;:OnOff Off
-            set /Herwig/Particles/tau-/tau-->nu\_tau,nu\_ebar,e-;:OnOff Off
-            set /Herwig/Particles/tau-/tau-->nu\_tau,nu\_mubar,mu-;:OnOff Off
-        }
-    \end{minipage}
-\end{center}
-
-A sample card to run with (\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHEWithISR.in}) and without (\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHENoISRMPI.in}) mpi is available in the {\tt GitHub} page.
-
-Example for an extremely simple reader is available in \url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}.
-
-\subsection{Reading the root files:}

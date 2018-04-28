@@ -676,8 +676,8 @@ namespace Step2 {
         inline void Plot_Masses () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
-            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].n_tracks;}
-            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].n_tracks;}
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].frac_had;}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].frac_had;}
             PlotHist("Masses",Masses1,Masses2);
         }
 
