@@ -144,40 +144,6 @@ namespace Step1 {
             for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Eem;}
             return ret;
         }
-        inline double Planar_Flow (std::vector <size_t> & in_indices) const {
-            double ret=-10000;
-            if(in_indices.size()>2){
-                std::vector <NewHEPHeaders::VECTORS::lorentz4vector<>> momentas ; /* Read in the 4 vectors: */ {
-                    for (size_t i=0;i<in_indices.size();i++) {momentas.push_back(Vectors[in_indices[i]].momentum);}
-                }
-                NewHEPHeaders::VECTORS::lorentz4vector <> jetvector(0,0,0,0);
-                for (size_t i=0;i<momentas.size();i++) {jetvector+=momentas[i];}
-                double mJ = jetvector.m();
-                NewHEPHeaders::VECTORS::euclid3vector<>JetAxis[3]; /* Get the 3 independent axis: */ {
-                    /* Read the independent vectors: */ {
-                        JetAxis[0] = jetvector.xyz.dir   () ;
-                        JetAxis[1] = momentas[0].xyz.dir () ;
-                        JetAxis[2] = momentas[1].xyz.dir () ;
-                    }
-                    /* Use gram-smidt procedure: */ {
-                        JetAxis[1] = (JetAxis[1]-(JetAxis[0]*(JetAxis[1]*JetAxis[0]))).dir();
-                        JetAxis[2] = (JetAxis[2]-(JetAxis[0]*(JetAxis[2]*JetAxis[0]))).dir();
-                        JetAxis[2] = (JetAxis[2]-(JetAxis[1]*(JetAxis[2]*JetAxis[1]))).dir();
-                    }
-                }
-                double matrix[2][2]; {matrix[0][0]=0;matrix[0][1]=0;matrix[1][0]=0;matrix[1][1]=0;}
-                for(size_t i=0;i<momentas.size();i++){
-                    NewHEPHeaders::VECTORS::euclid3vector<>tmp=momentas[i].xyz;
-                    matrix[0][1]+=(tmp*JetAxis[1])*(tmp*JetAxis[2])/momentas[i][3];
-                    matrix[0][0]+=(tmp*JetAxis[1])*(tmp*JetAxis[1])/momentas[i][3];
-                    matrix[1][1]+=(tmp*JetAxis[2])*(tmp*JetAxis[2])/momentas[i][3];
-                }
-                matrix[1][0]=matrix[0][1];
-                ret=4.0*((matrix[0][0]*matrix[1][1])-(matrix[1][0]*matrix[0][1]));
-                ret/=((matrix[0][0]+matrix[1][1])*mJ);
-            }
-            return ret;
-        }
         inline size_t operator ()            ()                                        {return numberOfEntries;}
         DelphesReader (std::string&_ListOfFiles): ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
         ~DelphesReader () {destroy();}
@@ -210,9 +176,45 @@ namespace Step1 {
             n_tracks       = in.count_tracks           (index_constituents[0]) ;
             frac_em        = in.electromagnetic_energy (index_constituents[0]) / taucandidate.E () ;
             frac_had       = in.hadronic_energy        (index_constituents[0]) / taucandidate.E () ;
-            Planar_Flow[0] = in.Planar_Flow            (index_constituents[0]) ;
-            Planar_Flow[1] = in.Planar_Flow            (index_constituents[1]) ;
-            Planar_Flow[2] = in.Planar_Flow            (index_constituents[2]) ;
+        }
+        inline double Get_Planar_Flow (const fastjet::PseudoJet&injet) {
+            double ret=-10000.0;
+            NewHEPHeaders::pseudojets constituents = injet.constituents();
+            size_t limit = constituents.size();
+            if(limit>2){
+                std::vector <NewHEPHeaders::VECTORS::lorentz4vector<>> momentas ; /* Read in the 4 vectors: */ {
+                    momentas.resize(limit);
+                    for(size_t i=0;i<limit;i++)
+                    {momentas[i]=NewHEPHeaders::VECTORS::lorentz4vector<>(constituents[i]);}
+                }
+                NewHEPHeaders::VECTORS::lorentz4vector <> jetvector(injet);
+                double mJ = jetvector.m();
+                NewHEPHeaders::VECTORS::euclid3vector<>JetAxis[3]; /* Get the 3 independent axis: */ {
+                    /* Read the independent vectors: */ {
+                        JetAxis[0] = jetvector.xyz.dir   () ;
+                        JetAxis[1] = momentas[0].xyz.dir () ;
+                        JetAxis[2] = momentas[1].xyz.dir () ;
+                    }
+                    /* Use gram-smidt procedure: */ {
+                        JetAxis[1] = ( JetAxis[1] - (JetAxis[0]*(JetAxis[1]*JetAxis[0])) ).dir () ;
+                        JetAxis[2] = ( JetAxis[2] - (JetAxis[0]*(JetAxis[2]*JetAxis[0])) ).dir () ;
+                        JetAxis[2] = ( JetAxis[2] - (JetAxis[1]*(JetAxis[2]*JetAxis[1])) ).dir () ;
+                    }
+                }
+                double matrix[2][2]; {matrix[0][0]=0;matrix[0][1]=0;matrix[1][0]=0;matrix[1][1]=0;}
+                for(size_t i=0;i<momentas.size();i++){
+                    NewHEPHeaders::VECTORS::euclid3vector<>tmp=momentas[i].xyz;
+                    matrix[0][1] += (tmp*JetAxis[1]) * (tmp*JetAxis[2]) / momentas[i][3] ;
+                    matrix[0][0] += (tmp*JetAxis[1]) * (tmp*JetAxis[1]) / momentas[i][3] ;
+                    matrix[1][1] += (tmp*JetAxis[2]) * (tmp*JetAxis[2]) / momentas[i][3] ;
+                }
+                matrix[0][0]/=mJ; matrix[1][1]/=mJ; matrix[0][1]/=mJ;
+                matrix[1][0]=matrix[0][1];
+                ret = 4.0 * ( (matrix[0][0]*matrix[1][1]) - (matrix[1][0]*matrix[0][1]) ) ;
+                double trace = (matrix[0][0]+matrix[1][1]) ;
+                ret/=(trace*trace);
+            }
+            return ret;
         }
         inline void get_constituent_indices ( const fastjet::PseudoJet & this_jet ) {
             /* The Full Jet Part: */ {
@@ -256,6 +258,9 @@ namespace Step1 {
                     nsub[3]=nSub4(this_jet); nsub[4]=nSub5(this_jet);
                     for(size_t i=0;i<4;i++) if(nsub[i]>epsilon) {nsub_ratio[i]=nsub[i+1]/nsub[i];}
                 }
+                Planar_Flow[0]=Get_Planar_Flow(this_jet);
+                if(tau_subs.size()>0){Planar_Flow[1]=Get_Planar_Flow(tau_subs[0]);}
+                if(tau_subs.size()>1){Planar_Flow[2]=Get_Planar_Flow(tau_subs[1]);}
             }
         }
         inline void find_structures         ( const fastjet::PseudoJet & this_jet ) {
@@ -280,7 +285,7 @@ namespace Step1 {
             fastjet::Filter filter (filtering_def,fastjet::SelectorNHardest(nfilt)*fastjet::SelectorPtMin(minpt_subjet)) ;
             taucandidate    = filter         (triple) ;
             filteredjetmass = taucandidate.m ()       ;
-            EvalEnergyCorrelation   ( taucandidate )  ;
+            EvalEnergyCorrelation ( taucandidate )    ;
         }
         inline void run_recluster           (                                     ) {
             fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
