@@ -171,14 +171,15 @@ A sample card to run with (\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGG
 
 Example for an extremely simple reader is available in \url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}.
 
-\section{Reading the root files and some results:}
+\section{Reading the root files:}
+The main reader program can be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}''.
 
+\section{Results:}
 We use the following color convention for graphs through out the document:
 \begin{center}
     \includegraphics[width=0.5\textwidth]{./ColorConventions.pdf}
 \end{center}
-The main reader program can be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}''.
-We present some simple results obtained using these methods (Note: we use the BDRS+filtering method on the jet to identify hard substructures and consider events with MPI enabled).
+We present some simple results obtained using jet substructure variables on jets tagged using BDRS+Filtering methods (Note: we use the final 2 step filtered (BDRS+filtering) jet to evaluate variables and all of these results are for events with MPI enabled). Note that planar flow [\autoref{fig:PlanarFlow}, \autoref{fig:PlanarFlowX}] seem to work extremely well.
 
 \begin{figure}
     \begin{center}
@@ -217,6 +218,15 @@ We present some simple results obtained using these methods (Note: we use the BD
         \includegraphics[width=0.7\textwidth]{./PlanarFlow.pdf}
         \caption{ Planar Flow of the jet after BDRS and filtering steps, normalized to unit area under the curve. }
         \label{fig:PlanarFlow}
+    \end{center}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.49\textwidth]{./PlanarFlow1.pdf}
+        \includegraphics[width=0.49\textwidth]{./PlanarFlow2.pdf}\\
+        \caption{ Planar Flow of the two subjets after BDRS and filtering steps, normalized to unit area under the curve. }
+        \label{fig:PlanarFlowX}
     \end{center}
 \end{figure}
 

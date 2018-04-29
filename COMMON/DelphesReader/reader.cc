@@ -151,19 +151,20 @@ namespace Step1 {
 
     class HardSubStructureFinder {
     public:
-        const double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet, mh, mhmin, mhmax, zcut, rcut_factor;
+        const double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet, mh, mhmin, mhmax,
+        zcut, rcut_factor;
         const size_t nfilt;
         double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass, Planar_Flow[3],
         EFC[6], EFCDR[4], frac_em, frac_had, nsub[5], nsub_ratio[4];
         bool    HiggsTagged           ;
         size_t  n_tracks              ;
         indices index_constituents[3] ;
-        NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons ;
+        NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons , tau_pieces   ;
         fastjet::PseudoJet        prunedjet , triple   , Higgs       , taucandidate ;
     private:
         inline void clear                   (                                     ) {
-            t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ;
-            filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks    =      0.0 ;
+            t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ; tau_pieces.clear () ;
+            filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0.0      ;
             unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
             Planar_Flow[0] = -10000.0 ; Planar_Flow[1] = -10000.0 ; Planar_Flow[2] = -10000.0 ;
             index_constituents[0].clear() ; index_constituents[1].clear() ; index_constituents[2].clear() ;
@@ -259,8 +260,6 @@ namespace Step1 {
                     for(size_t i=0;i<4;i++) if(nsub[i]>epsilon) {nsub_ratio[i]=nsub[i+1]/nsub[i];}
                 }
                 Planar_Flow[0]=Get_Planar_Flow(this_jet);
-                if(tau_subs.size()>0){Planar_Flow[1]=Get_Planar_Flow(tau_subs[0]);}
-                if(tau_subs.size()>1){Planar_Flow[2]=Get_Planar_Flow(tau_subs[1]);}
             }
         }
         inline void find_structures         ( const fastjet::PseudoJet & this_jet ) {
@@ -288,14 +287,23 @@ namespace Step1 {
             EvalEnergyCorrelation ( taucandidate )    ;
         }
         inline void run_recluster           (                                     ) {
-            fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
-            fastjet::ClusterSequence cs_top_sub   (taucandidate.pieces(),reclustering) ;
-            tau_subs=sorted_by_pt(cs_top_sub.exclusive_jets(2));
             get_constituent_indices ( taucandidate )  ;
+            /* The Full SubJets part: */ {
+                fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
+                fastjet::ClusterSequence cs_top_sub   (taucandidate.constituents(),reclustering) ;
+                tau_subs=sorted_by_pt(cs_top_sub.exclusive_jets(2));
+                if(tau_subs.size()>0){Planar_Flow[1]=Get_Planar_Flow(tau_subs[0]);}
+                if(tau_subs.size()>1){Planar_Flow[2]=Get_Planar_Flow(tau_subs[1]);}
+            }
+            /* The pieces part: */ {
+                fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
+                fastjet::ClusterSequence cs_top_sub   (taucandidate.pieces(),reclustering) ;
+                tau_pieces=sorted_by_pt(cs_top_sub.exclusive_jets(2));
+            }
         }
         inline void run_variable_evaluater  ( fastjet::PseudoJet       & injet    ) {
             HiggsTagged  = true;
-            Higgs        = tau_subs[0]+tau_subs[1];
+            Higgs        = tau_pieces[0]+tau_pieces[1];
             deltah       = CPPFileIO::mymod(taucandidate.m()-mh);
             tau_hadrons  = taucandidate.constituents();
             double Rprun = injet.validated_cluster_sequence()->jet_def().R();
@@ -311,7 +319,7 @@ namespace Step1 {
                 run_filter();
                 if((mhmin<filteredjetmass)&&(filteredjetmass<mhmax)&&(taucandidate.pieces().size()>1)){
                     run_recluster();
-                    if (tau_subs[1].perp()>minpt_subjet)
+                    if((tau_pieces[1].perp()>minpt_subjet)&&(tau_subs[1].perp()>minpt_subjet))
                     {run_variable_evaluater(injet);}
                 }
             }
@@ -338,14 +346,14 @@ namespace Step1 {
         EFC[6], EFCDR[4], frac_em, frac_had, nsub[5], nsub_ratio[4];
         bool    HiggsTagged;
         size_t  n_tracks;
-        NewHEPHeaders::VECTORS::lorentz4vector <> tau_subs[2] , t_parts[2]  , tau_hadrons[2] ;
-        NewHEPHeaders::VECTORS::lorentz4vector <> prunedjet   , triple      , taucandidate   , Higgs ;
+        NewHEPHeaders::VECTORS::lorentz4vector <> tau_subs[2] , t_parts[2]  , tau_hadrons[2] , tau_pieces[2] ;
+        NewHEPHeaders::VECTORS::lorentz4vector <> prunedjet   , triple      , taucandidate   , Higgs         ;
     private:
         inline void clear () {
-            t_parts[0].clearthis () ; tau_subs[0].clearthis () ; tau_hadrons[0].clearthis () ;
-            t_parts[1].clearthis () ; tau_subs[1].clearthis () ; tau_hadrons[1].clearthis () ;
-            filteredjetmass = 0.0 ; filt_tau_R     =     0   ; prunedmass     = 0.0   ; n_tracks = 0 ;
-            unfiltered_mass = 0.0 ; deltah         = 10000   ; HiggsTagged    = false ;
+            t_parts[0].clearthis () ; tau_subs[0].clearthis () ; tau_hadrons[0].clearthis () ; tau_pieces[0].clearthis () ;
+            t_parts[1].clearthis () ; tau_subs[1].clearthis () ; tau_hadrons[1].clearthis () ; tau_pieces[1].clearthis () ;
+            filteredjetmass = 0.0 ; filt_tau_R     =     0.0 ; prunedmass     = 0.0   ; n_tracks = 0 ;
+            unfiltered_mass = 0.0 ; deltah         = 10000.0 ; HiggsTagged    = false ;
             Planar_Flow[0]  = 0.0 ; Planar_Flow[1] =     0.0 ; Planar_Flow[2] = 0.0   ;
             for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
@@ -375,6 +383,9 @@ namespace Step1 {
             { tau_subs    [i] = other.tau_subs    [i] ; }
             for ( size_t i=0 ; i < CPPFileIO::mymin ( other.tau_hadrons.size () , (size_t)2 ) ; i++ )
             { tau_hadrons [i] = other.tau_hadrons [i] ; }
+            for ( size_t i=0 ; i < CPPFileIO::mymin ( other.tau_pieces.size  () , (size_t)2 ) ; i++ )
+            { tau_pieces  [i] = other.tau_pieces  [i] ; }
+            //printf("Planar Flow: %e %e %e\n",Planar_Flow[0],Planar_Flow[1],Planar_Flow[2]);
         }
     public:
         inline void operator () () {clear();}
@@ -397,7 +408,13 @@ namespace Step1 {
             fastjet::ClusterSequence clust_seq(jetvectors,jetDef);
             NewHEPHeaders::pseudojets antikt_jets=sorted_by_pt(clust_seq.inclusive_jets());
             for (size_t j=0;(j<antikt_jets.size())&&(j<2);j++) if(antikt_jets[j].perp()>200.0) {
-                fastjet::PseudoJet&this_jet=antikt_jets[j];
+                // Recluster the jets:
+                NewHEPHeaders::pseudojets constituents = antikt_jets[j].constituents();
+                const double tmp_jet_rad=100.00;
+                fastjet::JetDefinition tmp_jetDef(fastjet::cambridge_aachen_algorithm,tmp_jet_rad);
+                fastjet::ClusterSequence tmp_clust_seq(constituents,tmp_jetDef);
+                NewHEPHeaders::pseudojets CAJets_jets=sorted_by_pt(tmp_clust_seq.inclusive_jets());
+                fastjet::PseudoJet&this_jet=CAJets_jets[0];
                 if(this_jet.m()>40){
                     HardSubStructureFinder tmpslave ;
                     double mass = tmpslave(this_jet);
@@ -887,7 +904,19 @@ namespace Step2 {
             for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].Planar_Flow[1];}
             for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].Planar_Flow[1];}
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[1];}
-            PlotHistLog("PlanarFlow1",Masses1,Masses2,Masses3,Masses4,-0.0001,0.5);
+            PlotHistLog("PlanarFlow1",Masses1,Masses2,Masses3,Masses4,-0.0001,1.5);
+        }
+
+        inline void Plot_PlanarFlow2 () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].Planar_Flow[1];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].Planar_Flow[1];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].Planar_Flow[1];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[1];}
+            PlotHistLog("PlanarFlow2",Masses1,Masses2,Masses3,Masses4,-0.0001,1.5);
         }
 
     public:
@@ -903,7 +932,7 @@ namespace Step2 {
         element3(&(reader3(0,Limit3))) , element4(&(reader4(0,Limit4))) {
             Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();
             Plot_ECorrDR();Plot_ECorr();Plot_nsub_ratio();Plot_nsub();
-            Plot_PlanarFlow();Plot_PlanarFlow1();
+            Plot_PlanarFlow();Plot_PlanarFlow1();Plot_PlanarFlow2();
         }
         ~PlotAll2(){}
     } ;
