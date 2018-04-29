@@ -144,6 +144,40 @@ namespace Step1 {
             for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[in_indices[i]].Eem;}
             return ret;
         }
+        inline double Planar_Flow (std::vector <size_t> & in_indices) const {
+            double ret=-10000;
+            if(in_indices.size()>2){
+                std::vector <NewHEPHeaders::VECTORS::lorentz4vector<>> momentas ; /* Read in the 4 vectors: */ {
+                    for (size_t i=0;i<in_indices.size();i++) {momentas.push_back(Vectors[in_indices[i]].momentum);}
+                }
+                NewHEPHeaders::VECTORS::lorentz4vector <> jetvector(0,0,0,0);
+                for (size_t i=0;i<momentas.size();i++) {jetvector+=momentas[i];}
+                double mJ = jetvector.m();
+                NewHEPHeaders::VECTORS::euclid3vector<>JetAxis[3]; /* Get the 3 independent axis: */ {
+                    /* Read the independent vectors: */ {
+                        JetAxis[0] = jetvector.xyz.dir   () ;
+                        JetAxis[1] = momentas[0].xyz.dir () ;
+                        JetAxis[2] = momentas[1].xyz.dir () ;
+                    }
+                    /* Use gram-smidt procedure: */ {
+                        JetAxis[1] = (JetAxis[1]-(JetAxis[0]*(JetAxis[1]*JetAxis[0]))).dir();
+                        JetAxis[2] = (JetAxis[2]-(JetAxis[0]*(JetAxis[2]*JetAxis[0]))).dir();
+                        JetAxis[2] = (JetAxis[2]-(JetAxis[1]*(JetAxis[2]*JetAxis[1]))).dir();
+                    }
+                }
+                double matrix[2][2]; {matrix[0][0]=0;matrix[0][1]=0;matrix[1][0]=0;matrix[1][1]=0;}
+                for(size_t i=0;i<momentas.size();i++){
+                    NewHEPHeaders::VECTORS::euclid3vector<>tmp=momentas[i].xyz;
+                    matrix[0][1]+=(tmp*JetAxis[1])*(tmp*JetAxis[2])/momentas[i][3];
+                    matrix[0][0]+=(tmp*JetAxis[1])*(tmp*JetAxis[1])/momentas[i][3];
+                    matrix[1][1]+=(tmp*JetAxis[2])*(tmp*JetAxis[2])/momentas[i][3];
+                }
+                matrix[1][0]=matrix[0][1];
+                ret=4.0*((matrix[0][0]*matrix[1][1])-(matrix[1][0]*matrix[0][1]));
+                ret/=((matrix[0][0]+matrix[1][1])*mJ);
+            }
+            return ret;
+        }
         inline size_t operator ()            ()                                        {return numberOfEntries;}
         DelphesReader (std::string&_ListOfFiles): ListOfFiles(_ListOfFiles), chain("Delphes") {construct();}
         ~DelphesReader () {destroy();}
@@ -153,37 +187,54 @@ namespace Step1 {
     public:
         const double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet, mh, mhmin, mhmax, zcut, rcut_factor;
         const size_t nfilt;
-        double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass,
+        double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass, Planar_Flow[3],
         EFC[6], EFCDR[4], frac_em, frac_had, nsub[5], nsub_ratio[4];
-        bool    HiggsTagged        ;
-        size_t  n_tracks           ;
-        indices index_constituents ;
+        bool    HiggsTagged           ;
+        size_t  n_tracks              ;
+        indices index_constituents[3] ;
         NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons ;
         fastjet::PseudoJet        prunedjet , triple   , Higgs       , taucandidate ;
     private:
         inline void clear                   (                                     ) {
-            t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ; index_constituents.clear() ;
-            filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0 ;
+            t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ;
+            filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks    =      0.0 ;
             unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
+            Planar_Flow[0] = -10000.0 ; Planar_Flow[1] = -10000.0 ; Planar_Flow[2] = -10000.0 ;
+            index_constituents[0].clear() ; index_constituents[1].clear() ; index_constituents[2].clear() ;
             for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { nsub_ratio [i] = -10000.0 ; }
         }
         inline void read_extra_variables    ( const DelphesReader      & in       ) {
-            n_tracks = in.count_tracks           (index_constituents) ;
-            frac_em  = in.electromagnetic_energy (index_constituents) / taucandidate.E () ;
-            frac_had = in.hadronic_energy        (index_constituents) / taucandidate.E () ;
+            n_tracks       = in.count_tracks           (index_constituents[0]) ;
+            frac_em        = in.electromagnetic_energy (index_constituents[0]) / taucandidate.E () ;
+            frac_had       = in.hadronic_energy        (index_constituents[0]) / taucandidate.E () ;
+            Planar_Flow[0] = in.Planar_Flow            (index_constituents[0]) ;
+            Planar_Flow[1] = in.Planar_Flow            (index_constituents[1]) ;
+            Planar_Flow[2] = in.Planar_Flow            (index_constituents[2]) ;
         }
         inline void get_constituent_indices ( const fastjet::PseudoJet & this_jet ) {
-            NewHEPHeaders::pseudojets vectors=this_jet.constituents();
-            const size_t limit=vectors.size(); index_constituents.resize(limit);
-            for (size_t i=0;i<limit;i++) {index_constituents[i]=vectors[i].user_index();}
+            /* The Full Jet Part: */ {
+                NewHEPHeaders::pseudojets vectors=this_jet.constituents();
+                const size_t limit=vectors.size(); index_constituents[0].resize(limit);
+                for (size_t i=0;i<limit;i++) {index_constituents[0][i]=vectors[i].user_index();}
+            }
+            /* The First SubJet part: */ if(tau_subs.size()>0) {
+                NewHEPHeaders::pseudojets vectors=tau_subs[0].constituents();
+                const size_t limit=vectors.size(); index_constituents[1].resize(limit);
+                for (size_t i=0;i<limit;i++) {index_constituents[1][i]=vectors[i].user_index();}
+            }
+            /* The First SubJet part: */ if(tau_subs.size()>1) {
+                NewHEPHeaders::pseudojets vectors=tau_subs[1].constituents();
+                const size_t limit=vectors.size(); index_constituents[2].resize(limit);
+                for (size_t i=0;i<limit;i++) {index_constituents[2][i]=vectors[i].user_index();}
+            }
         }
         inline void EvalEnergyCorrelation   ( fastjet::PseudoJet & this_jet       ) {
             using namespace fastjet          ;
             using namespace fastjet::contrib ;
-            const double beta    = 2.0                    ;
+            const double beta = 2.0          ;
             if(this_jet.constituents().size()>0){
                 /* The energy correlation part: */ {
                     const auto   measure = EnergyCorrelator::pt_R ;
@@ -220,17 +271,6 @@ namespace Step1 {
                     return;
                 } else {find_structures(parent1);return;}
             } else {return;}
-            // The part below is never reached...
-            if(this_jet.m()<max_subjet_mass){t_parts.push_back(this_jet);}
-            else {
-                fastjet::PseudoJet parent1(0,0,0,0), parent2(0,0,0,0);
-                bool haskid = this_jet.validated_cs()->has_parents(this_jet,parent1,parent2);
-                if (haskid) {
-                    if (parent1.m()<parent2.m()) {std::swap(parent1,parent2);}
-                    find_structures(parent1);
-                    if (parent1.m()<mass_drop_threshold*this_jet.m()) {find_structures(parent2);}
-                }
-            }
         }
         inline void run_filter              (                                     ) {
             t_parts    = sorted_by_pt  (t_parts)               ;
@@ -241,12 +281,12 @@ namespace Step1 {
             taucandidate    = filter         (triple) ;
             filteredjetmass = taucandidate.m ()       ;
             EvalEnergyCorrelation   ( taucandidate )  ;
-            get_constituent_indices ( taucandidate )  ;
         }
         inline void run_recluster           (                                     ) {
             fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
             fastjet::ClusterSequence cs_top_sub   (taucandidate.pieces(),reclustering) ;
             tau_subs=sorted_by_pt(cs_top_sub.exclusive_jets(2));
+            get_constituent_indices ( taucandidate )  ;
         }
         inline void run_variable_evaluater  ( fastjet::PseudoJet       & injet    ) {
             HiggsTagged  = true;
@@ -289,7 +329,7 @@ namespace Step1 {
 
     class OutPutVariables {
     public:
-        double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass,
+        double filteredjetmass, deltah, filt_tau_R, prunedmass, unfiltered_mass, Planar_Flow[3],
         EFC[6], EFCDR[4], frac_em, frac_had, nsub[5], nsub_ratio[4];
         bool    HiggsTagged;
         size_t  n_tracks;
@@ -299,8 +339,9 @@ namespace Step1 {
         inline void clear () {
             t_parts[0].clearthis () ; tau_subs[0].clearthis () ; tau_hadrons[0].clearthis () ;
             t_parts[1].clearthis () ; tau_subs[1].clearthis () ; tau_hadrons[1].clearthis () ;
-            filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0 ;
-            unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
+            filteredjetmass = 0.0 ; filt_tau_R     =     0   ; prunedmass     = 0.0   ; n_tracks = 0 ;
+            unfiltered_mass = 0.0 ; deltah         = 10000   ; HiggsTagged    = false ;
+            Planar_Flow[0]  = 0.0 ; Planar_Flow[1] =     0.0 ; Planar_Flow[2] = 0.0   ;
             for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
@@ -313,9 +354,12 @@ namespace Step1 {
             filt_tau_R      = other.filt_tau_R      ;
             prunedmass      = other.prunedmass      ;
             n_tracks        = other.n_tracks        ;
-            unfiltered_mass = 0.0                   ;
-            deltah          = 10000                 ;
-            HiggsTagged     = false                 ;
+            unfiltered_mass = other.unfiltered_mass ;
+            deltah          = other.deltah          ;
+            HiggsTagged     = other.HiggsTagged     ;
+            Planar_Flow[0]  = other.Planar_Flow[0]  ;
+            Planar_Flow[1]  = other.Planar_Flow[1]  ;
+            Planar_Flow[2]  = other.Planar_Flow[2]  ;
             for (size_t i=0;i<6;i++) { EFC        [i] = other.EFC        [i] ; }
             for (size_t i=0;i<4;i++) { EFCDR      [i] = other.EFCDR      [i] ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = other.nsub       [i] ; }
@@ -403,13 +447,12 @@ namespace Step1 {
             }
         }
     }
-
     inline void ProcessAll () {
         CPPFileIO::ForkMe forker;
-        if(forker.InKid()){ProcessType("BoostedZToNuNuBar");}
-        if(forker.InKid()){ProcessType("BoostedZ");}
-        if(forker.InKid()){ProcessType("UnBoostedZ");}
-        if(forker.InKid()){ProcessType("BoostedZToBBbar");}
+        if (forker.InKid()) { ProcessType ( "BoostedZToNuNuBar" ) ; }
+        if (forker.InKid()) { ProcessType ( "BoostedZ"          ) ; }
+        if (forker.InKid()) { ProcessType ( "UnBoostedZ"        ) ; }
+        if (forker.InKid()) { ProcessType ( "BoostedZToBBbar"   ) ; }
     }
 }
 
@@ -619,6 +662,79 @@ namespace Step2 {
         }
     }
 
+
+    inline void PlotHistLog (
+        std::string name,
+        std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3, std::vector<float>&vals4,
+        float xmin=0 , float xmax=-1
+    ) {
+        std::string name2 = name + "2" ;
+        std::string name3 = name + "3" ;
+        std::string name4 = name + "4" ;
+        size_t limit  = vals.size  ()  ;
+        size_t limit2 = vals2.size ()  ;
+        size_t limit3 = vals3.size ()  ;
+        size_t limit4 = vals4.size ()  ;
+        /* Check for limits of histograms: */ {
+            if(xmin>xmax) {
+                if(limit>0){
+                    std::sort ( vals.begin() , vals.end() ) ;
+                    xmin = vals [0]       ;
+                    xmax = vals [limit-1] ;
+                }
+                if(limit2>0){
+                    std::sort ( vals2.begin() , vals2.begin() ) ;
+                    xmin = CPPFileIO::mymin ( vals2 [0]        , xmin ) ;
+                    xmax = CPPFileIO::mymax ( vals2 [limit2-1] , xmax ) ;
+                }
+                if(limit3>0){
+                    std::sort ( vals3.begin() , vals3.begin() ) ;
+                    xmin = CPPFileIO::mymin ( vals3 [0]        , xmin ) ;
+                    xmax = CPPFileIO::mymax ( vals3 [limit3-1] , xmax ) ;
+                }
+                if(limit4>0){
+                    std::sort ( vals4.begin() , vals4.begin() ) ;
+                    xmin = CPPFileIO::mymin ( vals4 [0]        , xmin ) ;
+                    xmax = CPPFileIO::mymax ( vals4 [limit4-1] , xmax ) ;
+                }
+            }
+        }
+        TH1F hist  ( & ( name  [0] ) , & ( name  [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist2 ( & ( name2 [0] ) , & ( name2 [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist3 ( & ( name3 [0] ) , & ( name3 [0] ) , 100 , xmin , xmax ) ;
+        TH1F hist4 ( & ( name4 [0] ) , & ( name4 [0] ) , 100 , xmin , xmax ) ;
+        /* prepare the histograms: */ {
+            /* Fill the histograms: */ {
+                for ( size_t i = 0 ; i < vals.size  () ; i++ ) if ( vals  [i] > -100.0 ) { hist.Fill  ( vals  [i] ) ; }
+                for ( size_t i = 0 ; i < vals2.size () ; i++ ) if ( vals2 [i] > -100.0 ) { hist2.Fill ( vals2 [i] ) ; }
+                for ( size_t i = 0 ; i < vals3.size () ; i++ ) if ( vals3 [i] > -100.0 ) { hist3.Fill ( vals3 [i] ) ; }
+                for ( size_t i = 0 ; i < vals4.size () ; i++ ) if ( vals4 [i] > -100.0 ) { hist4.Fill ( vals4 [i] ) ; }
+            }
+            /* Rescale and color the histograms: */ {
+                hist.Scale  ( 1.0 / hist.Integral  () ) ; hist.SetLineWidth  (3) ; hist.SetLineColor  (TColor::GetColor("#990000"));
+                hist2.Scale ( 1.0 / hist2.Integral () ) ; hist2.SetLineWidth (3) ; hist2.SetLineColor (TColor::GetColor("#009900"));
+                hist3.Scale ( 1.0 / hist3.Integral () ) ; hist3.SetLineWidth (3) ; hist3.SetLineColor (TColor::GetColor("#000099"));
+                hist4.Scale ( 1.0 / hist4.Integral () ) ; hist4.SetLineWidth (3) ; hist4.SetLineColor (TColor::GetColor("#000000"));
+            }
+            /* Set the maximum */ {
+                float x1 = hist.GetBinContent  ( hist.GetMaximumBin  () ) ;
+                float x2 = hist2.GetBinContent ( hist2.GetMaximumBin () ) ;
+                float x3 = hist3.GetBinContent ( hist3.GetMaximumBin () ) ;
+                float x4 = hist4.GetBinContent ( hist4.GetMaximumBin () ) ;
+                float x  = CPPFileIO::mymax ( CPPFileIO::mymax ( CPPFileIO::mymax ( x1 , x2 ) , x3 ) , x4 ) ;
+                hist.SetMaximum(x); hist2.SetMaximum(x); hist3.SetMaximum(x); hist4.SetMaximum(x);
+            }
+        }
+        /* Draw and save the histograms: */ {
+            mkdir((const char*)"./GRAPHS",(mode_t)0755);
+            TCanvas C; C.SetLogy(1);
+            hist.Draw  ("hist same") ; hist2.Draw ("hist same") ;
+            hist3.Draw ("hist same") ; hist4.Draw ("hist same") ;
+            name = "./GRAPHS/" + name + ".pdf";
+            C.SaveAs(&(name[0]));
+        }
+    }
+
     class PlotAll2 {
     private:
         CPPFileIO::FileArray <Step1::OutPutVariables> reader1 , reader2 , reader3 , reader4 ;
@@ -685,7 +801,7 @@ namespace Step2 {
 
             char tmp[512];
             sprintf(tmp,"NSub%ld",j+1);
-            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4,0.0,2.0);
+            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
         }
         inline void Plot_nsub ()
         {Plot_nsub(0);Plot_nsub(1);Plot_nsub(2);Plot_nsub(3);Plot_nsub(4);}
@@ -745,7 +861,32 @@ namespace Step2 {
         inline void Plot_ECorr ()
         {Plot_ECorr(0);Plot_ECorr(1);Plot_ECorr(2);Plot_ECorr(3);Plot_ECorr(4);Plot_ECorr(5);}
 
+        inline void Plot_PlanarFlow () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].Planar_Flow[0];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].Planar_Flow[0];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].Planar_Flow[0];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[0];}
+            PlotHistLog("PlanarFlow",Masses1,Masses2,Masses3,Masses4,-0.0001,0.5);
+        }
+
+        inline void Plot_PlanarFlow1 () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].Planar_Flow[1];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].Planar_Flow[1];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].Planar_Flow[1];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[1];}
+            PlotHistLog("PlanarFlow1",Masses1,Masses2,Masses3,Masses4,-0.0001,0.5);
+        }
+
     public:
+
         PlotAll2():
         reader1 ( "./SKIM_DATA/BoostedZ/WithMPI"          ) ,
         reader2 ( "./SKIM_DATA/BoostedZToNuNuBar/WithMPI" ) ,
@@ -757,6 +898,7 @@ namespace Step2 {
         element3(&(reader3(0,Limit3))) , element4(&(reader4(0,Limit4))) {
             Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();
             Plot_ECorrDR();Plot_ECorr();Plot_nsub_ratio();Plot_nsub();
+            Plot_PlanarFlow();Plot_PlanarFlow1();
         }
         ~PlotAll2(){}
     } ;

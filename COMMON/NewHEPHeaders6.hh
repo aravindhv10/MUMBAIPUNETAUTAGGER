@@ -139,6 +139,11 @@ namespace NewHEPHeaders {
             inline ssize_t operator >> (CPPFileIO::FileFD & f) const { return f.multiwrite2file (*this); }
             inline ssize_t operator << (CPPFileIO::FileFD & f) const { return f.multiread2file (*this); }
 
+            inline void operator += (const plane2vector < TR > b) {x[0]+=b.x[0];x[1]+=b.x[1];}
+            inline void operator -= (const plane2vector < TR > b) {x[0]-=b.x[0];x[1]-=b.x[1];}
+            inline void operator *= (const plane2vector < TR > b) {x[0]*=b.x[0];x[1]*=b.x[1];}
+            inline void operator /= (const plane2vector < TR > b) {x[0]/=b.x[0];x[1]/=b.x[1];}
+
             inline TR & operator [] (size_t i)       { return x[i]; }
             inline TR   operator [] (size_t i) const { return x[i]; }
 
@@ -232,6 +237,12 @@ namespace NewHEPHeaders {
                 ret = ret / mag;
                 return ret;
             }
+
+            inline void operator += (const euclid3vector<TR>b) {xy+=b.xy;z+=b.z;}
+            inline void operator -= (const euclid3vector<TR>b) {xy-=b.xy;z-=b.z;}
+            inline void operator *= (const euclid3vector<TR>b) {xy*=b.xy;z*=b.z;}
+            inline void operator /= (const euclid3vector<TR>b) {xy/=b.xy;z/=b.z;}
+
             inline bool operator > (const euclid3vector < TR > b) const { return pt2 () > b.pt2 (); }
             inline bool operator < (const euclid3vector < TR > b) const { return pt2 () < b.pt2 (); }
             inline ssize_t operator >> (CPPFileIO::FileFD & f) const { return f.multiwrite2file (*this); }
@@ -334,6 +345,11 @@ namespace NewHEPHeaders {
 
             inline lorentz4vector < TR > dir () const
             { return lorentz4vector < TR > (xyz.dir (), t); }
+
+            inline void operator += (const lorentz4vector<TR>b) {xyz+=b.xyz;t+=b.t;}
+            inline void operator -= (const lorentz4vector<TR>b) {xyz-=b.xyz;t-=b.t;}
+            inline void operator *= (const lorentz4vector<TR>b) {xyz*=b.xyz;t*=b.t;}
+            inline void operator /= (const lorentz4vector<TR>b) {xyz/=b.xyz;t/=b.t;}
 
             inline bool operator > (const lorentz4vector < TR > b) const { return pt2 () > b.pt2 (); }
             inline bool operator < (const lorentz4vector < TR > b) const { return pt2 () < b.pt2 (); }
