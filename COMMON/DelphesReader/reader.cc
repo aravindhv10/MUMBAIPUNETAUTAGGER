@@ -150,6 +150,8 @@ namespace Step1 {
     };
 
     class HardSubStructureFinder {
+    private:
+        std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> * Vectors ;
     public:
         const double max_subjet_mass, mass_drop_threshold, Rfilt, minpt_subjet, mh, mhmin, mhmax,
         zcut, rcut_factor;
@@ -162,7 +164,7 @@ namespace Step1 {
         NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons , tau_pieces   ;
         fastjet::PseudoJet        prunedjet , triple   , Higgs       , taucandidate ;
     private:
-        inline void clear                   (                                     ) {
+        inline void   clear                   (                                     )       {
             t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ; tau_pieces.clear () ;
             filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0.0      ;
             unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
@@ -172,14 +174,36 @@ namespace Step1 {
             for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { nsub_ratio [i] = -10000.0 ; }
+            CPPFileIO::set_junked(Vectors);
         }
-        inline void read_extra_variables    ( const DelphesReader      & in       ) {
+        inline size_t count_tracks            ( std::vector <size_t> & in_indices   ) const {
+            size_t ret=0;
+            for(size_t i=0;i<in_indices.size();i++){ret=ret+CPPFileIO::mymod(Vectors[0][in_indices[i]].Charge);}
+            return ret;
+        }
+        inline double hadronic_energy         ( std::vector <size_t> & in_indices   ) const {
+            double ret=0;
+            for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[0][in_indices[i]].Ehad;}
+            return ret;
+        }
+        inline double electromagnetic_energy  ( std::vector <size_t> & in_indices   ) const {
+            double ret=0;
+            for(size_t i=0;i<in_indices.size();i++){ret=ret+Vectors[0][in_indices[i]].Eem;}
+            return ret;
+        }
+        inline void   read_extra_variables    ( const DelphesReader & in            )       {
             n_tracks       = in.count_tracks           (index_constituents[0]) ;
             frac_em        = in.electromagnetic_energy (index_constituents[0]) / taucandidate.E () ;
             frac_had       = in.hadronic_energy        (index_constituents[0]) / taucandidate.E () ;
         }
-        inline double Get_Planar_Flow (const fastjet::PseudoJet&injet) {
-            double ret=-10000.0;
+        inline void   read_extra_variables    ( std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> & _Vectors ) {
+            Vectors        = & _Vectors                                     ;
+            n_tracks       = count_tracks           (index_constituents[0]) ;
+            frac_em        = electromagnetic_energy (index_constituents[0]) / taucandidate.E () ;
+            frac_had       = hadronic_energy        (index_constituents[0]) / taucandidate.E () ;
+        }
+        inline double Get_Planar_Flow         ( const fastjet::PseudoJet & injet    )       {
+            double ret = -10000.0 ;
             NewHEPHeaders::pseudojets constituents = injet.constituents();
             size_t limit = constituents.size();
             if(limit>2){
@@ -217,7 +241,7 @@ namespace Step1 {
             }
             return ret;
         }
-        inline void get_constituent_indices ( const fastjet::PseudoJet & this_jet ) {
+        inline void   get_constituent_indices ( const fastjet::PseudoJet & this_jet )       {
             /* The Full Jet Part: */ {
                 NewHEPHeaders::pseudojets vectors=this_jet.constituents();
                 const size_t limit=vectors.size(); index_constituents[0].resize(limit);
@@ -234,7 +258,7 @@ namespace Step1 {
                 for (size_t i=0;i<limit;i++) {index_constituents[2][i]=vectors[i].user_index();}
             }
         }
-        inline void EvalEnergyCorrelation   ( fastjet::PseudoJet & this_jet       ) {
+        inline void   EvalEnergyCorrelation   ( fastjet::PseudoJet       & this_jet )       {
             using namespace fastjet          ;
             using namespace fastjet::contrib ;
             const double beta = 2.0          ;
@@ -262,7 +286,7 @@ namespace Step1 {
                 Planar_Flow[0]=Get_Planar_Flow(this_jet);
             }
         }
-        inline void find_structures         ( const fastjet::PseudoJet & this_jet ) {
+        inline void   find_structures         ( const fastjet::PseudoJet & this_jet )       {
             fastjet::PseudoJet parent1(0,0,0,0), parent2(0,0,0,0);
             bool haskid=this_jet.validated_cs()->has_parents(this_jet,parent1,parent2);
             if(haskid) {
@@ -276,7 +300,7 @@ namespace Step1 {
                 } else {find_structures(parent1);return;}
             } else {return;}
         }
-        inline void run_filter              (                                     ) {
+        inline void   run_filter              (                                     )       {
             t_parts    = sorted_by_pt  (t_parts)               ;
             triple     = fastjet::join (t_parts[0],t_parts[1]) ;
             filt_tau_R = std::min ( Rfilt , 0.5 * sqrt (t_parts[0].squared_distance(t_parts[1])) ) ;
@@ -286,7 +310,7 @@ namespace Step1 {
             filteredjetmass = taucandidate.m ()       ;
             EvalEnergyCorrelation ( taucandidate )    ;
         }
-        inline void run_recluster           (                                     ) {
+        inline void   run_recluster           (                                     )       {
             get_constituent_indices ( taucandidate )  ;
             /* The Full SubJets part: */ {
                 fastjet::JetDefinition   reclustering (fastjet::cambridge_algorithm,10.0)  ;
@@ -301,7 +325,7 @@ namespace Step1 {
                 tau_pieces=sorted_by_pt(cs_top_sub.exclusive_jets(2));
             }
         }
-        inline void run_variable_evaluater  ( fastjet::PseudoJet       & injet    ) {
+        inline void   run_variable_evaluater  ( fastjet::PseudoJet       & injet    )       {
             HiggsTagged  = true;
             Higgs        = tau_pieces[0]+tau_pieces[1];
             deltah       = CPPFileIO::mymod(taucandidate.m()-mh);
@@ -313,7 +337,7 @@ namespace Step1 {
             prunedmass      = prunedjet.m ()       ;
             unfiltered_mass = triple.m    ()       ;
         }
-        inline void run                     ( fastjet::PseudoJet       & injet    ) {
+        inline void   run                     ( fastjet::PseudoJet       & injet    )       {
             clear(); find_structures(injet);
             if (t_parts.size()>1) {
                 run_filter();
@@ -325,6 +349,8 @@ namespace Step1 {
             }
         }
     public:
+        inline void   operator () (std::vector <NewHEPHeaders::VECTORS::DelphesVectors<>> & _Vectors)
+        {read_extra_variables(_Vectors);}
         inline void   operator () (const DelphesReader&in)   {read_extra_variables(in);}
         inline void   operator () ()                         {clear();}
         inline double operator () (fastjet::PseudoJet&injet) {
@@ -419,7 +445,7 @@ namespace Step1 {
                     HardSubStructureFinder tmpslave ;
                     double mass = tmpslave(this_jet);
                     if(tmpslave.HiggsTagged){
-                        tmpslave(MainReader[0]);
+                        tmpslave(MainReader[0].Vectors);
                         OutPutVariables tmp; tmp = tmpslave ;
                         Writer.push_back(tmp);
                     }
