@@ -1,7 +1,25 @@
 \section{Introduction}
-The main {\tt GitHub} link for this work is \url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER}.
-The latest version of this document can always be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/ReadME.pdf}''.
-The sources for this document (including the figures in case you want to use them anywhere) can be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/HERWIG_PART/Documentation}''.
+
+\begin{itemize}
+\item The main {\tt GitHub} link for this work is:
+\end{itemize}
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER}}''.
+\end{flushleft}
+
+\begin{itemize}
+    \item The latest version of this document can always be found at:
+\end{itemize}
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/ReadME.pdf}}''.
+\end{flushleft}
+
+\begin{itemize}
+    \item The sources for this document (including the figures in case you want to use them anywhere) can be found at:
+\end{itemize}
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/HERWIG_PART/Documentation}}''.
+\end{flushleft}
 
 \subsection{Installing Herwig-7}
 To install Herwig, please make sure you have a {\bf proper} root installation (and source "{\tt thisroot.sh}" if it is installed in non-standard location) as Herwig uses {\tt libpyroot}.
@@ -16,18 +34,21 @@ Download and install {\tt Herwig} by running the script \url{https://herwig.hepf
     \end{minipage}
 \end{center}
 This will install {\tt Herwig} to the location `{\tt ./HerwigInstall}' along with all of it's dependencies ({\tt boost}, {\tt fastjet}, {\tt HepMC}, etc).
-Full instructions for using this script is found in \url{https://herwig.hepforge.org/tutorials/installation/bootstrap.html}.
+Full instructions for using this script is found in:\\
+``\small{\url{https://herwig.hepforge.org/tutorials/installation/bootstrap.html}}''.
 
 \section{Generating events:}
 \subsection{The Partonic Level Events:}
 The quickest way I could find to generate events in {\tt Herwig} was by generating parton level events in {\tt MadGraph} and shower using {\tt Herwig} (I also got suggestions to adopt similar method for {\tt Pythia} as this nicely isolates matrix element generation from showering and our main aim is the study effect of different showering and hadronization techniques on our jet substructure algorithms).
 \begin{center}
-    \begin{minipage}{0.7\textwidth}
-        { \tt
-            wget -c '\url{https://launchpad.net/mg5amcnlo/2.0/2.6.x/+download/MG5_aMC_v2.6.1.tar.gz}';\\
-            tar -xf "MG5\_aMC\_v2.6.1.tar.gz";\\
-            cd "MG5\_aMC\_v2\_6\_1/";\\
-            ./bin/mg5\_aMC
+    \begin{minipage}{0.9\textwidth}
+        \small{
+            { \tt
+                wget -c '\url{https://launchpad.net/mg5amcnlo/2.0/2.6.x/+download/MG5_aMC_v2.6.1.tar.gz}';\\
+                tar -xf "MG5\_aMC\_v2.6.1.tar.gz";\\
+                cd "MG5\_aMC\_v2\_6\_1/";\\
+                ./bin/mg5\_aMC
+            }
         }
     \end{minipage}
 \end{center}
@@ -107,7 +128,10 @@ you can extract this:
     \end{minipage}
 \end{center}
 
-The complete list of LHE files generated using the above methods can be downloaded from ``\url{https://drive.google.com/file/d/1sVQSYUDPqSB0vgh84Y8IIOucBSMMr9rL/view?usp=sharing}''
+The complete list of LHE files generated using the above methods can be downloaded from\\
+\begin{flushleft}
+    ``\small{\url{https://drive.google.com/file/d/1sVQSYUDPqSB0vgh84Y8IIOucBSMMr9rL/view?usp=sharing}}''
+\end{flushleft}
 
 \subsection{Showering:}
 Move the LHE file to another directory where you want to do the showering:
@@ -126,7 +150,11 @@ now you will need to activate {\tt Herwig} (note, {\tt <HerwigInstall>} needs to
     \end{minipage}
 \end{center}
 
-Once this is done, download the file ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHEWithISR.in}'' to the current directory (\textasciitilde/shower). In LHE.in, edit the line:
+Once this is done, download the file
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHEWithISR.in}}''
+\end{flushleft}
+to the current directory ``\textasciitilde/shower''. In LHE.in, edit the line:
 \begin{center}
     \begin{minipage}{0.7\textwidth}
         {\tt set LesHouchesReader:FileName unweighted\_events.lhe}
@@ -153,9 +181,17 @@ is responsible for producing the {\tt HepMC} file, you can then use {\tt Delphes
         }
     \end{minipage}
 \end{center}
-You can change underlying event, tunes, etc in the LHE.in file, explore \url{https://herwig.hepforge.org/tutorials/faq/shower.html} for details.
+You can change underlying event, tunes, etc in the LHE.in file, explore 
+\begin{flushleft}
+    ``\small{\url{https://herwig.hepforge.org/tutorials/faq/shower.html}}''
+\end{flushleft}
+for details.
 
-By default, {\tt Herwig} does not force $\tau$ to decay hadronically. This can be forced, check the link: \url{https://herwig.hepforge.org/tutorials/faq/decay.html} to know how this can be done. Basically you would need:
+By default, {\tt Herwig} does not force $\tau$ to decay hadronically. This can be forced, check the link: 
+\begin{flushleft}
+    \small{\url{https://herwig.hepforge.org/tutorials/faq/decay.html}}
+\end{flushleft}
+to know how this can be done. Basically you would need:
 \begin{center}
     \begin{minipage}{0.8\textwidth}
         {\tt
@@ -167,12 +203,26 @@ By default, {\tt Herwig} does not force $\tau$ to decay hadronically. This can b
     \end{minipage}
 \end{center}
 
-A sample card to run with (\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHEWithISR.in}) and without (\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHENoISRMPI.in}) mpi is available in the {\tt GitHub} page.
-
-Example for an extremely simple reader is available in \url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}.
+A sample run card:
+\begin{itemize}
+    \item With MPI:
+\end{itemize}
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHEWithISR.in}}''
+\end{flushleft}
+\begin{itemize}
+    \item With out MPI:
+\end{itemize}
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/blob/master/HERWIG_PART/LHENoISRMPI.in}}''
+\end{flushleft}
+is available in the {\tt GitHub} page.
 
 \section{Reading the root files:}
-The main reader program can be found at ``\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}''.
+Example for an extremely simple reader is available in:
+\begin{flushleft}
+    ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}}''.
+\end{flushleft}
 
 \section{Results:}
 We use the following color convention for graphs through out the document:
