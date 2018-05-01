@@ -1,0 +1,4 @@
+Selection:
+
+only leading / subleading jet which has larger z (symmetry measure in soft drop)
+soft drop mass of the jet > 20 GeV

@@ -1,6 +1,13 @@
 \section{Introduction}
 
 \begin{itemize}
+    \item An interesting masters thesis on tau reconstruction using ATLAS detector.
+\end{itemize}
+\begin{flushleft}
+    ``\small{\url{https://cds.cern.ch/record/2105592/files/CERN-THESIS-2015-220.pdf}}''
+\end{flushleft}
+
+\begin{itemize}
 \item The main {\tt GitHub} link for this work is:
 \end{itemize}
 \begin{flushleft}
@@ -223,81 +230,3 @@ Example for an extremely simple reader is available in:
 \begin{flushleft}
     ``\small{\url{https://github.com/aravindhv10/MUMBAIPUNETAUTAGGER/tree/master/COMMON/DelphesReader}}''.
 \end{flushleft}
-
-\section{Results:}
-We use the following color convention for graphs through out the document:
-\begin{center}
-    \includegraphics[width=0.5\textwidth]{./ColorConventions.pdf}
-\end{center}
-We present some simple results obtained using jet substructure variables on jets tagged using BDRS+Filtering methods (Note: we use the final 2 step filtered (BDRS+filtering) jet to evaluate variables and all of these results are for events with MPI enabled). Note that planar flow [\autoref{fig:PlanarFlow}, \autoref{fig:PlanarFlowX}] seem to work extremely well.
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.7\textwidth]{./EFrac.pdf}
-        \caption{ Electromagnetic energy fraction of the jet, normalized to unit area under the curve. }
-        \label{fig:EFrac}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.7\textwidth]{./HFrac.pdf}
-        \caption{ Hadronic energy fraction of the jet, normalized to unit area under the curve. }
-        \label{fig:HFrac}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.7\textwidth]{./NTracks.pdf}
-        \caption{ Number of tracks in the jet, normalized to unit area under the curve. }
-        \label{fig:NTracks}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.7\textwidth]{./Masses.pdf}
-        \caption{ Masses of the jet after BDRS and filtering steps, normalized to unit area under the curve. }
-        \label{fig:Masses}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.7\textwidth]{./PlanarFlow.pdf}
-        \caption{ Planar Flow of the jet after BDRS and filtering steps, normalized to unit area under the curve. }
-        \label{fig:PlanarFlow}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.49\textwidth]{./PlanarFlow1.pdf}
-        \includegraphics[width=0.49\textwidth]{./PlanarFlow2.pdf}\\
-        \caption{ Planar Flow of the two subjets after BDRS and filtering steps, normalized to unit area under the curve. }
-        \label{fig:PlanarFlowX}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.49\textwidth]{./NSub1.pdf}
-        \includegraphics[width=0.49\textwidth]{./NSub2.pdf}\\
-        \includegraphics[width=0.49\textwidth]{./NSub3.pdf}
-        \includegraphics[width=0.49\textwidth]{./NSub4.pdf}\\
-        \caption{ {\tt NSubJettiness} observable, normalized to unit area under the curve. }
-        \label{fig:NSub}
-    \end{center}
-\end{figure}
-
-\begin{figure}
-    \begin{center}
-        \includegraphics[width=0.49\textwidth]{./NSubRatio1.pdf}
-        \includegraphics[width=0.49\textwidth]{./NSubRatio2.pdf}\\
-        \includegraphics[width=0.49\textwidth]{./NSubRatio3.pdf}
-        \includegraphics[width=0.49\textwidth]{./NSubRatio4.pdf}\\
-        \caption{ Ratio of {\tt NSubJettiness} observable, normalized to unit area under the curve. }
-        \label{fig:NSubRatio}
-    \end{center}
-\end{figure}
