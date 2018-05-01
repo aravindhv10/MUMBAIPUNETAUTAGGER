@@ -1,3 +1,5 @@
+Jets : constructed using particle flow candidates (PFlowMergers)
+
 Selection:
 
 only leading / subleading jet which has larger z (symmetry measure in soft drop)
