@@ -27,6 +27,7 @@
 #include "fastjet/tools/Filter.hh"
 #include "fastjet/tools/Pruner.hh"
 #include "TColor.h"
+#include "TH2F.h"
 
 namespace Step1 {
 
@@ -163,6 +164,7 @@ namespace Step1 {
         indices index_constituents[3] ;
         NewHEPHeaders::pseudojets tau_subs  , t_parts  , tau_hadrons , tau_pieces   ;
         fastjet::PseudoJet        prunedjet , triple   , Higgs       , taucandidate ;
+        NewHEPHeaders::VECTORS::lorentz4vector <> ZVector ;
     private:
         inline void   clear                   (                                     )       {
             t_parts.clear ()      ; tau_subs.clear ()  ; tau_hadrons.clear () ; tau_pieces.clear () ;
@@ -170,6 +172,7 @@ namespace Step1 {
             unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
             Planar_Flow[0] = -10000.0 ; Planar_Flow[1] = -10000.0 ; Planar_Flow[2] = -10000.0 ;
             index_constituents[0].clear() ; index_constituents[1].clear() ; index_constituents[2].clear() ;
+            ZVector.clearthis();
             for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
@@ -373,20 +376,27 @@ namespace Step1 {
         bool    HiggsTagged;
         size_t  n_tracks;
         NewHEPHeaders::VECTORS::lorentz4vector <> tau_subs[2] , t_parts[2]  , tau_hadrons[2] , tau_pieces[2] ;
-        NewHEPHeaders::VECTORS::lorentz4vector <> prunedjet   , triple      , taucandidate   , Higgs         ;
+        NewHEPHeaders::VECTORS::lorentz4vector <> prunedjet   , triple      , taucandidate   , Higgs         , ZVector ;
     private:
         inline void clear () {
             t_parts[0].clearthis () ; tau_subs[0].clearthis () ; tau_hadrons[0].clearthis () ; tau_pieces[0].clearthis () ;
             t_parts[1].clearthis () ; tau_subs[1].clearthis () ; tau_hadrons[1].clearthis () ; tau_pieces[1].clearthis () ;
-            filteredjetmass = 0.0 ; filt_tau_R     =     0.0 ; prunedmass     = 0.0   ; n_tracks = 0 ;
-            unfiltered_mass = 0.0 ; deltah         = 10000.0 ; HiggsTagged    = false ;
-            Planar_Flow[0]  = 0.0 ; Planar_Flow[1] =     0.0 ; Planar_Flow[2] = 0.0   ;
+            prunedjet.clearthis  () ; triple.clearthis      () ; taucandidate.clearthis   () ;
+            Higgs.clearthis      () ; ZVector.clearthis     () ;
+            Planar_Flow[0]    = 0.0 ; Planar_Flow[1] =     0.0 ; Planar_Flow[2]      =   0.0 ;
+            filteredjetmass   = 0.0 ; filt_tau_R     =     0.0 ; prunedmass          =   0.0 ; n_tracks = 0 ;
+            unfiltered_mass   = 0.0 ; deltah         = 10000.0 ; HiggsTagged         = false ;
             for (size_t i=0;i<6;i++) { EFC        [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { EFCDR      [i] = -10000.0 ; }
             for (size_t i=0;i<5;i++) { nsub       [i] = -10000.0 ; }
             for (size_t i=0;i<4;i++) { nsub_ratio [i] = -10000.0 ; }
         }
         inline void ReadFrom (HardSubStructureFinder&other) {
+            Higgs           = other.Higgs           ;
+            ZVector         = other.ZVector         ;
+            prunedjet       = other.prunedjet       ;
+            triple          = other.triple          ;
+            taucandidate    = other.taucandidate    ;
             frac_em         = other.frac_em         ;
             frac_had        = other.frac_had        ;
             filteredjetmass = other.filteredjetmass ;
@@ -411,7 +421,6 @@ namespace Step1 {
             { tau_hadrons [i] = other.tau_hadrons [i] ; }
             for ( size_t i=0 ; i < CPPFileIO::mymin ( other.tau_pieces.size  () , (size_t)2 ) ; i++ )
             { tau_pieces  [i] = other.tau_pieces  [i] ; }
-            //printf("Planar Flow: %e %e %e\n",Planar_Flow[0],Planar_Flow[1],Planar_Flow[2]);
         }
     public:
         inline void operator () () {clear();}
@@ -446,6 +455,7 @@ namespace Step1 {
                     double mass = tmpslave(this_jet);
                     if(tmpslave.HiggsTagged){
                         tmpslave(MainReader[0].Vectors);
+                        tmpslave.ZVector=MainReader[0].ZVector;
                         OutPutVariables tmp; tmp = tmpslave ;
                         Writer.push_back(tmp);
                     }
@@ -710,7 +720,6 @@ namespace Step2 {
         }
     }
 
-
     inline void PlotHistLog (
         std::string name,
         std::vector<float>&vals, std::vector<float>&vals2, std::vector<float>&vals3, std::vector<float>&vals4,
@@ -789,6 +798,56 @@ namespace Step2 {
         size_t Limit1 , Limit2 , Limit3 , Limit4 ;
         Step1::OutPutVariables *element1 , *element2 , *element3 , *element4 ;
 
+        inline void Plot2D (size_t index=1) {
+            double max=20;
+            if(index==2){max=10;}
+            if(index>2){max=5;}
+            /* Element-1 */ {
+                char name[512]; sprintf(name,"T1NSub%ldvsPf",index);
+                TH2F NSub1vsPf(name,name,110,-0.1,max,110,-0.1,1.1);
+                for(size_t i=0;i<Limit1;i++)
+                {NSub1vsPf.Fill((float)element1[i].nsub[index],(float)element1[i].Planar_Flow[0]);}
+                std::string outname(name);
+                mkdir((const char*)"./GRAPHS",(mode_t)0755);
+                TCanvas C; NSub1vsPf.Draw("colz");
+                outname = "./GRAPHS/" + outname + ".pdf";
+                C.SaveAs(&(outname[0]));
+            }
+            /* Element-2 */ {
+                char name[512]; sprintf(name,"T2NSub%ldvsPf",index);
+                TH2F NSub1vsPf(name,name,110,-0.1,max,110,-0.1,1.1);
+                for(size_t i=0;i<Limit2;i++)
+                {NSub1vsPf.Fill((float)element2[i].nsub[index],(float)element2[i].Planar_Flow[0]);}
+                std::string outname(name);
+                mkdir((const char*)"./GRAPHS",(mode_t)0755);
+                TCanvas C; NSub1vsPf.Draw("colz");
+                outname = "./GRAPHS/" + outname + ".pdf";
+                C.SaveAs(&(outname[0]));
+            }
+            /* Element-3 */ {
+                char name[512]; sprintf(name,"T3NSub%ldvsPf",index);
+                TH2F NSub1vsPf(name,name,110,-0.1,max,110,-0.1,1.1);
+                for(size_t i=0;i<Limit3;i++)
+                {NSub1vsPf.Fill((float)element3[i].nsub[index],(float)element3[i].Planar_Flow[0]);}
+                std::string outname(name);
+                mkdir((const char*)"./GRAPHS",(mode_t)0755);
+                TCanvas C; NSub1vsPf.Draw("colz");
+                outname = "./GRAPHS/" + outname + ".pdf";
+                C.SaveAs(&(outname[0]));
+            }
+            /* Element-3 */ {
+                char name[512]; sprintf(name,"T4NSub%ldvsPf",index);
+                TH2F NSub1vsPf(name,name,110,-0.1,max,110,-0.1,1.1);
+                for(size_t i=0;i<Limit4;i++)
+                {NSub1vsPf.Fill((float)element4[i].nsub[index],(float)element4[i].Planar_Flow[0]);}
+                std::string outname(name);
+                mkdir((const char*)"./GRAPHS",(mode_t)0755);
+                TCanvas C; NSub1vsPf.Draw("colz");
+                outname = "./GRAPHS/" + outname + ".pdf";
+                C.SaveAs(&(outname[0]));
+            }
+        }
+
         inline void Plot_Masses () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -846,7 +905,6 @@ namespace Step2 {
             for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].nsub[j];}
             for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].nsub[j];}
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].nsub[j];}
-
             char tmp[512];
             sprintf(tmp,"NSub%ld",j+1);
             PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
@@ -945,6 +1003,18 @@ namespace Step2 {
             PlotHistLog("PlanarFlow2",Masses1,Masses2,Masses3,Masses4,-0.0001,1.5);
         }
 
+        inline void Plot_Z_Pt () {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].ZVector.pt();}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].ZVector.pt();}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].ZVector.pt();}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].ZVector.pt();}
+            PlotHistLog("GenLevelZPt",Masses1,Masses2,Masses3,Masses4);
+        }
+
     public:
 
         PlotAll2():
@@ -959,6 +1029,8 @@ namespace Step2 {
             Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();
             Plot_ECorrDR();Plot_ECorr();Plot_nsub_ratio();Plot_nsub();
             Plot_PlanarFlow();Plot_PlanarFlow1();Plot_PlanarFlow2();
+            Plot_Z_Pt();
+            Plot2D(1); Plot2D(2); Plot2D(3); Plot2D(4); Plot2D(5);
         }
         ~PlotAll2(){}
     } ;

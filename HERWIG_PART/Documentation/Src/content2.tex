@@ -6,7 +6,8 @@ We use the following color convention for graphs through out the document:
 \end{center}
 We present some simple results obtained using jet substructure variables on jets tagged using BDRS+Filtering methods (Note: we use the final 2 step filtered (BDRS\cite{BDRS}+filtering) jet to evaluate variables and all of these results are for events with MPI enabled). Note that planar flow \cite{PlanarFlow} [\autoref{fig:PlanarFlow}, \autoref{fig:PlanarFlowX}] seem to work extremely well.
 
-\begin{figure}
+
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{./EFrac.pdf}
         \caption{ Electromagnetic energy fraction of the jet, normalized to unit area under the curve. }
@@ -14,7 +15,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{./HFrac.pdf}
         \caption{ Hadronic energy fraction of the jet, normalized to unit area under the curve. }
@@ -22,7 +23,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{./NTracks.pdf}
         \caption{ Number of tracks in the jet, normalized to unit area under the curve. }
@@ -30,7 +31,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{./Masses.pdf}
         \caption{ Masses of the jet after BDRS and filtering steps, normalized to unit area under the curve. }
@@ -38,7 +39,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{./PlanarFlow.pdf}
         \caption{ Planar Flow of the jet after BDRS and filtering steps, normalized to unit area under the curve. }
@@ -46,7 +47,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.49\textwidth]{./PlanarFlow1.pdf}
         \includegraphics[width=0.49\textwidth]{./PlanarFlow2.pdf}\\
@@ -55,7 +56,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.49\textwidth]{./NSub1.pdf}
         \includegraphics[width=0.49\textwidth]{./NSub2.pdf}\\
@@ -66,7 +67,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.49\textwidth]{./NSubRatio1.pdf}
         \includegraphics[width=0.49\textwidth]{./NSubRatio2.pdf}\\
@@ -77,7 +78,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.49\textwidth]{./ECorr1.pdf}
         \includegraphics[width=0.49\textwidth]{./ECorr2.pdf}\\
@@ -90,7 +91,7 @@ We present some simple results obtained using jet substructure variables on jets
     \end{center}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.49\textwidth]{./ECorrDR1.pdf}
         \includegraphics[width=0.49\textwidth]{./ECorrDR2.pdf}\\
@@ -98,5 +99,51 @@ We present some simple results obtained using jet substructure variables on jets
         \includegraphics[width=0.49\textwidth]{./ECorrDR4.pdf}\\
         \caption{ Energy Correlation double ratio observable, normalized to unit area under the curve. }
         \label{fig:ECorrDR}
+    \end{center}
+\end{figure}
+
+We suspect Planar Flow might be correlated with {\tt NSubjettiness}, to verify these, we check the following graphs [\autoref{fig:nsubvspf1},\autoref{fig:nsubvspf2},\autoref{fig:nsubvspf3},\autoref{fig:nsubvspf4}].
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.49\textwidth]{./T1NSub1vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T1NSub2vsPf.pdf}\\
+        \includegraphics[width=0.49\textwidth]{./T1NSub3vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T1NSub4vsPf.pdf}\\
+        \caption{ {\tt NSubjettiness} (x-axis) vs planar flow (y-axis) for boosted $jZ\rightarrow \tau \bar{\tau}$ }
+        \label{fig:nsubvspf1}
+    \end{center}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.49\textwidth]{./T2NSub1vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T2NSub2vsPf.pdf}\\
+        \includegraphics[width=0.49\textwidth]{./T2NSub3vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T2NSub4vsPf.pdf}\\
+        \caption{ {\tt NSubjettiness} (x-axis) vs planar flow (y-axis) for boosted $jZ\rightarrow \nu \bar{\nu}$ }
+        \label{fig:nsubvspf2}
+    \end{center}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.49\textwidth]{./T3NSub1vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T3NSub2vsPf.pdf}\\
+        \includegraphics[width=0.49\textwidth]{./T3NSub3vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T3NSub4vsPf.pdf}\\
+        \caption{ {\tt NSubjettiness} (x-axis) vs planar flow (y-axis) for boosted $jZ\rightarrow b \bar{b}$ }
+        \label{fig:nsubvspf3}
+    \end{center}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.49\textwidth]{./T4NSub1vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T4NSub2vsPf.pdf}\\
+        \includegraphics[width=0.49\textwidth]{./T4NSub3vsPf.pdf}
+        \includegraphics[width=0.49\textwidth]{./T4NSub4vsPf.pdf}\\
+        \caption{ {\tt NSubjettiness} (x-axis) vs planar flow (y-axis) for unboosted $jZ\rightarrow \tau \bar{\tau}$ }
+        \label{fig:nsubvspf4}
     \end{center}
 \end{figure}
