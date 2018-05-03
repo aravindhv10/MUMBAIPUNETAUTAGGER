@@ -101,8 +101,6 @@ We present some simple results obtained using jet substructure variables on jets
         \label{fig:ECorrDR}
     \end{center}
 \end{figure}
-{\newpage}
-We suspect Planar Flow might be correlated with {\tt NSubjettiness}, to verify these, we check the following graphs [\autoref{fig:nsubvspf1},\autoref{fig:nsubvspf2},\autoref{fig:nsubvspf3},\autoref{fig:nsubvspf4}]. The correlations come in the range of 5\%.
 
 \begin{figure}[H]
     \begin{center}
@@ -145,5 +143,55 @@ We suspect Planar Flow might be correlated with {\tt NSubjettiness}, to verify t
         \includegraphics[width=0.49\textwidth]{./T4NSub4vsPf.pdf}\\
         \caption{ {\tt NSubjettiness} (x-axis) vs planar flow (y-axis) for unboosted $jZ\rightarrow \tau \bar{\tau}$ }
         \label{fig:nsubvspf4}
+    \end{center}
+\end{figure}
+
+{\newpage}
+
+\subsubsection{Analyzing planar flow:}
+
+We suspect Planar Flow might be correlated with {\tt NSubjettiness}, to verify these, we check the following graphs [\autoref{fig:nsubvspf1},\autoref{fig:nsubvspf2},\autoref{fig:nsubvspf3},\autoref{fig:nsubvspf4}], as can be seen there seems to be some correlation, we quantify this:
+
+\begin{eqnarray*}
+    J & \equiv & \text{The }Z-\text{tagged jet obtained after BDRS + Filtering.}\\
+    J_{1} & \equiv & \text{The highest }p_{T}\text{ subjet of }J.\\
+    J_{2} & \equiv & \text{The other subjet of }J.\\
+    P_{f} & \equiv & \text{Planar Flow}.\\
+    \tau_{N} & \equiv & n^{th}\text{ NSubjettiness}.\\
+    S\left(J\right) & \equiv & \sum_{i\in J}p_{T_{i}}\Delta R\left(i,J\right)\\
+    \\
+    \left\langle P_{f}\left(J\right),\tau_{2}\left(J\right)\right\rangle  & = & 3.70\times10^{-2}\\
+    \left\langle P_{f}\left(J\right),\tau_{3}\left(J\right)\right\rangle  & = & 4.26\times10^{-2}\\
+    \left\langle P_{f}\left(J\right),\tau_{4}\left(J\right)\right\rangle  & = & 4.32\times10^{-2}\\
+    \left\langle P_{f}\left(J\right),\tau_{5}\left(J\right)\right\rangle  & = & 4.20\times10^{-2}\\
+    \left\langle P_{f}\left(J\right),S\left(J\right)\right\rangle  & = & 9.73\times10^{-3}\\
+    \\
+    \left\langle P_{f}\left(J_{1}\right),\tau_{2}\left(J_{1}\right)\right\rangle  & = & 2.37\times10^{-1}\\
+    \left\langle P_{f}\left(J_{1}\right),\tau_{3}\left(J_{1}\right)\right\rangle  & = & 2.37\times10^{-1}\\
+    \left\langle P_{f}\left(J_{1}\right),\tau_{4}\left(J_{1}\right)\right\rangle  & = & 2.26\times10^{-1}\\
+    \left\langle P_{f}\left(J_{1}\right),\tau_{5}\left(J_{1}\right)\right\rangle  & = & 2.15\times10^{-1}\\
+    \left\langle P_{f}\left(J_{1}\right),S\left(J_{1}\right)\right\rangle  & = & 2.88\times10^{-1}\\
+    \\
+    \left\langle P_{f}\left(J_{2}\right),\tau_{2}\left(J_{2}\right)\right\rangle  & = & 2.32\times10^{-1}\\
+    \left\langle P_{f}\left(J_{2}\right),\tau_{3}\left(J_{2}\right)\right\rangle  & = & 2.19\times10^{-1}\\
+    \left\langle P_{f}\left(J_{2}\right),\tau_{4}\left(J_{2}\right)\right\rangle  & = & 2.00\times10^{-1}\\
+    \left\langle P_{f}\left(J_{2}\right),\tau_{5}\left(J_{2}\right)\right\rangle  & = & 1.83\times10^{-1}\\
+    \left\langle P_{f}\left(J_{2}\right),S\left(J_{2}\right)\right\rangle  & = & 2.72\times10^{-1}\\
+\end{eqnarray*}
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.7\textwidth]{./Spread0.pdf}
+        \caption{ The variable $S\left(J\right)$  }
+        \label{fig:Spread0}
+    \end{center}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{center}
+        \includegraphics[width=0.49\textwidth]{./Spread1.pdf}
+        \includegraphics[width=0.49\textwidth]{Spread2.pdf}\\
+        \caption{ The variable $S\left(J_1\right)$  and $S\left(J_2\right)$ }
+        \label{fig:SpreadX}
     \end{center}
 \end{figure}

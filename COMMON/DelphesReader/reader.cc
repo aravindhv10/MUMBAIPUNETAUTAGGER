@@ -925,16 +925,13 @@ namespace Step2 {
         }
         inline void CalculateCorrelation () {
             for(size_t j=0;j<3;j++){
-                CalculateCorrelationNSub(1,j);
-                CalculateCorrelationNSub(2,j);
-                CalculateCorrelationNSub(3,j);
-                CalculateCorrelationNSub(4,j);
+                for(size_t i=1;i<=4;i++)
+                {CalculateCorrelationNSub(i,j);}
+                CalculateCorrelationSpread(j);
             }
-            CalculateCorrelationSpread(0);
-            CalculateCorrelationSpread(1);
-            CalculateCorrelationSpread(2);
         }
-        inline void Plot2D (size_t index=1) {
+
+        inline void Plot2D (size_t index) {
             double max=20;
             if(index==2){max=10;}
             if(index>2){max=5;}
@@ -983,18 +980,21 @@ namespace Step2 {
                 C.SaveAs(&(outname[0]));
             }
         }
+        inline void Plot2D () {Plot2D(1);Plot2D(2);Plot2D(3);Plot2D(4);Plot2D(5);}
+
         inline void Plot_Masses () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
             std::vector <float> Masses3; Masses3.resize(Limit3);
             std::vector <float> Masses4; Masses4.resize(Limit4);
-            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].filteredjetmass;}
-            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].filteredjetmass;}
-            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].filteredjetmass;}
-            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].filteredjetmass;}
+            for (size_t i=0;i<Limit1;i++) {Masses1[i]=element1[i].filteredjetmass;}
+            for (size_t i=0;i<Limit2;i++) {Masses2[i]=element2[i].filteredjetmass;}
+            for (size_t i=0;i<Limit3;i++) {Masses3[i]=element3[i].filteredjetmass;}
+            for (size_t i=0;i<Limit4;i++) {Masses4[i]=element4[i].filteredjetmass;}
             PlotHist("Masses",Masses1,Masses2,Masses3,Masses4);
         }
-        inline void Plot_Spread (size_t index=0) {
+
+        inline void Plot_Spread (size_t index) {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
             std::vector <float> Masses3; Masses3.resize(Limit3);
@@ -1006,6 +1006,8 @@ namespace Step2 {
             char tmp[512]; sprintf(tmp,"Spread%ld",index);
             PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
         }
+        inline void Plot_Spread () {Plot_Spread(0);Plot_Spread(1);Plot_Spread(2);}
+
         inline void Plot_EFrac () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1017,6 +1019,7 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_em;}
             PlotHist("EFrac",Masses1,Masses2,Masses3,Masses4);
         }
+
         inline void Plot_HFrac () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1028,6 +1031,7 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_had;}
             PlotHist("HFrac",Masses1,Masses2,Masses3,Masses4);
         }
+
         inline void Plot_NTracks () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1039,6 +1043,7 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].n_tracks;}
             PlotHist("NTracks",Masses1,Masses2,Masses3,Masses4);
         }
+
         inline void Plot_nsub (size_t j, size_t k=0) {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1053,11 +1058,8 @@ namespace Step2 {
             else      { sprintf ( tmp , "NSub%ldOnSubjet%ld" , j+1 , k ) ; }
             PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
         }
-        inline void Plot_nsub () {
-            Plot_nsub(0);Plot_nsub(1);Plot_nsub(2);Plot_nsub(3);Plot_nsub(4);
-            Plot_nsub(0,1);Plot_nsub(1,1);Plot_nsub(2,1);Plot_nsub(3,1);Plot_nsub(4,1);
-            Plot_nsub(0,2);Plot_nsub(1,2);Plot_nsub(2,2);Plot_nsub(3,2);Plot_nsub(4,2);
-        }
+        inline void Plot_nsub () {for(size_t i=0;i<5;i++){Plot_nsub(i,0);Plot_nsub(i,1);Plot_nsub(i,2);}}
+
         inline void Plot_nsub_ratio (size_t j) {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1089,23 +1091,23 @@ namespace Step2 {
         inline void Plot_ECorrDR ()
         {Plot_ECorrDR(0);Plot_ECorrDR(1);Plot_ECorrDR(2);Plot_ECorrDR(3);}
 
-        inline void Plot_ECorr (size_t j) {
+        inline void Plot_ECorr (size_t j, size_t k=0) {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
             std::vector <float> Masses3; Masses3.resize(Limit3);
             std::vector <float> Masses4; Masses4.resize(Limit4);
-            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].EFC[0][j];}
-            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].EFC[0][j];}
-            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].EFC[0][j];}
-            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].EFC[0][j];}
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].EFC[k][j];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].EFC[k][j];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].EFC[k][j];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].EFC[k][j];}
             char tmp[512];
-            sprintf(tmp,"ECorr%ld",j+1);
+            if   (k==0) { sprintf ( tmp , "ECorr%ld"            , j+1     ) ; }
+            else        { sprintf ( tmp , "ECorr%ldOnSubjet%ld" , j+1 , k ) ; }
             PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
         }
-        inline void Plot_ECorr ()
-        {Plot_ECorr(0);Plot_ECorr(1);Plot_ECorr(2);Plot_ECorr(3);Plot_ECorr(4);Plot_ECorr(5);}
+        inline void Plot_ECorr () {for(size_t i=0;i<6;i++){Plot_ECorr(i,0);Plot_ECorr(i,1);Plot_ECorr(i,2);}}
 
-        inline void Plot_PlanarFlow () {
+        inline void Plot_PlanarFlow0 () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
             std::vector <float> Masses3; Masses3.resize(Limit3);
@@ -1116,7 +1118,6 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[0];}
             PlotHistLog("PlanarFlow",Masses1,Masses2,Masses3,Masses4,-0.0001,0.5);
         }
-
         inline void Plot_PlanarFlow1 () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1128,7 +1129,6 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[1];}
             PlotHistLog("PlanarFlow1",Masses1,Masses2,Masses3,Masses4,-0.0001,1.5);
         }
-
         inline void Plot_PlanarFlow2 () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1140,6 +1140,7 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Planar_Flow[1];}
             PlotHistLog("PlanarFlow2",Masses1,Masses2,Masses3,Masses4,-0.0001,1.5);
         }
+        inline void Plot_PlanarFlow () {Plot_PlanarFlow0();Plot_PlanarFlow1();Plot_PlanarFlow2();}
 
         inline void Plot_Z_Pt () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
@@ -1167,7 +1168,7 @@ namespace Step2 {
             Plot_Masses     () ; Plot_EFrac       () ; Plot_HFrac       () ; Plot_NTracks () ;
             Plot_ECorrDR    () ; Plot_ECorr       () ; Plot_nsub_ratio  () ; Plot_nsub    () ;
             Plot_PlanarFlow () ; Plot_PlanarFlow1 () ; Plot_PlanarFlow2 () ; Plot_Z_Pt    () ;
-            Plot_Spread (0) ; Plot_Spread (1) ; Plot_Spread (2) ;
+            Plot_Spread     () ;
             Plot2D      (1) ; Plot2D      (2) ; Plot2D      (3) ; Plot2D (4) ; Plot2D (5) ;
             CalculateCorrelation();
         }
