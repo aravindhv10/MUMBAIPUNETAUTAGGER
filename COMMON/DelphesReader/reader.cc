@@ -158,7 +158,8 @@ namespace Step1 {
         mh                            , mhmin               , mhmax      , zcut         , rcut_factor     ;
         const size_t nfilt            ;
         double       filteredjetmass  , deltah              , filt_tau_R , prunedmass   , unfiltered_mass ,
-        Planar_Flow[3]                , EFC[3][6]           , frac_em    , frac_had     , nsub[3][5]      ;
+        Planar_Flow[3]                , EFC[3][6]           , frac_em    , frac_had     , nsub[3][5]      ,
+        Spread[3]                     ;
         bool    HiggsTagged           ;
         size_t  n_tracks              ;
         indices index_constituents[3] ;
@@ -171,6 +172,7 @@ namespace Step1 {
             filteredjetmass = 0.0 ; filt_tau_R =     0 ; prunedmass  = 0.0    ; n_tracks = 0.0      ;
             unfiltered_mass = 0.0 ; deltah     = 10000 ; HiggsTagged = false  ;
             Planar_Flow[0] = -10000.0 ; Planar_Flow[1] = -10000.0 ; Planar_Flow[2] = -10000.0 ;
+            Spread[0]      = -10000.0 ; Spread[1]      = -10000.0 ; Spread[2]      = -10000.0 ;
             index_constituents[0].clear() ; index_constituents[1].clear() ; index_constituents[2].clear() ;
             ZVector.clearthis();
             for (size_t i=0;i<6;i++) {
@@ -210,6 +212,13 @@ namespace Step1 {
             n_tracks       = count_tracks           (index_constituents[0]) ;
             frac_em        = electromagnetic_energy (index_constituents[0]) / taucandidate.E () ;
             frac_had       = hadronic_energy        (index_constituents[0]) / taucandidate.E () ;
+        }
+        inline double Get_Spread                 ( const fastjet::PseudoJet & injet    )       {
+            double ret = 0.0 ;
+            NewHEPHeaders::pseudojets constituents = injet.constituents();
+            size_t limit = constituents.size();
+            for(size_t i=0;i<limit;i++){ret+=constituents[i].delta_R(injet)*constituents[i].perp();}
+            return ret ;
         }
         inline double Get_Planar_Flow            ( const fastjet::PseudoJet & injet    )       {
             double ret = -10000.0 ;
@@ -291,11 +300,13 @@ namespace Step1 {
                     nsub[0][3]=nSub4(this_jet); nsub[0][4]=nSub5(this_jet);
                 }
                 Planar_Flow[0]=Get_Planar_Flow(this_jet);
+                Spread[0]=Get_Spread(this_jet);
             }
         }
         inline void   read_reclustered_variables () {
             if(tau_subs.size()>0){
                 Planar_Flow[1]=Get_Planar_Flow(tau_subs[0]);
+                Spread[1]=Get_Spread(tau_subs[0]);
                 using namespace fastjet ; using namespace fastjet::contrib ; const double beta = 2.0 ;
                 Nsubjettiness nSub1 ( 1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
                 Nsubjettiness nSub2 ( 2, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
@@ -314,6 +325,7 @@ namespace Step1 {
             }
             if(tau_subs.size()>1){
                 Planar_Flow[2]=Get_Planar_Flow(tau_subs[1]);
+                Spread[2]=Get_Spread(tau_subs[1]);
                 using namespace fastjet ; using namespace fastjet::contrib ; const double beta = 2.0 ;
                 Nsubjettiness nSub1 ( 1, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
                 Nsubjettiness nSub2 ( 2, OnePass_WTA_KT_Axes(), UnnormalizedMeasure(beta) ) ;
@@ -411,7 +423,8 @@ namespace Step1 {
     class OutPutVariables {
     public:
         double filteredjetmass , deltah    , filt_tau_R , prunedmass , unfiltered_mass ,
-        Planar_Flow[3]         , EFC[3][6] , frac_em    , frac_had   , nsub[3][5]      ;
+        Planar_Flow[3]         , EFC[3][6] , frac_em    , frac_had   , nsub[3][5]      ,
+        Spread[3]              ;
         bool    HiggsTagged ;
         size_t  n_tracks    ;
         NewHEPHeaders::VECTORS::lorentz4vector <> tau_subs[2] , t_parts[2]  , tau_hadrons[2] , tau_pieces[2] ;
@@ -423,6 +436,7 @@ namespace Step1 {
             prunedjet.clearthis  () ; triple.clearthis      () ; taucandidate.clearthis   () ;
             Higgs.clearthis      () ; ZVector.clearthis     () ;
             Planar_Flow[0]    = 0.0 ; Planar_Flow[1] =     0.0 ; Planar_Flow[2]      =   0.0 ;
+            Spread[0]         = 0.0 ; Spread[1]      =     0.0 ; Spread[2]           =   0.0 ;
             filteredjetmass   = 0.0 ; filt_tau_R     =     0.0 ; prunedmass          =   0.0 ; n_tracks = 0 ;
             unfiltered_mass   = 0.0 ; deltah         = 10000.0 ; HiggsTagged         = false ;
             for (size_t i=0;i<6;i++) {
@@ -454,6 +468,9 @@ namespace Step1 {
             Planar_Flow[0]  = other.Planar_Flow[0]  ;
             Planar_Flow[1]  = other.Planar_Flow[1]  ;
             Planar_Flow[2]  = other.Planar_Flow[2]  ;
+            Spread[0]       = other.Spread[0]       ;
+            Spread[1]       = other.Spread[1]       ;
+            Spread[2]       = other.Spread[2]       ;
             for (size_t i=0;i<6;i++) {
                 EFC[0][i]  = other.EFC[0][i]  ;
                 EFC[1][i]  = other.EFC[1][i]  ;
@@ -479,13 +496,11 @@ namespace Step1 {
             if(nsub[j][i]>epsilon){ret=nsub[j][i+1]/nsub[j][i];}
             return ret;
         }
-
         inline double EFCDR (size_t i, size_t j=0) {
             double ret=0;
             if(EFC[j][i+1]>epsilon){ret=EFC[j][i+2]*EFC[j][i]/(EFC[j][i+1]*EFC[j][i+1]);}
             return ret;
         }
-
         inline void operator () () {clear();}
         inline void operator = (HardSubStructureFinder&other) {ReadFrom(other);}
         OutPutVariables  () {}
@@ -889,15 +904,36 @@ namespace Step2 {
         size_t                                            Limit1   ,   Limit2   ,   Limit3   ,   Limit4   ;
         Step1::OutPutVariables                          * element1 , * element2 , * element3 , * element4 ;
 
-        inline void CalculateCorrelation (size_t index=1) {
+        inline void CalculateCorrelationSpread (size_t index) {
+            std::vector <float> spreads, pfs;
+            spreads.resize(Limit1); pfs.resize(Limit1);
+            for(size_t i=0;i<Limit1;i++){
+                spreads [i] = element1[i].Spread      [index] ;
+                pfs     [i] = element1[i].Planar_Flow [index] ;
+            }
+            Normalizer <float> Nspreads ( spreads ) ;
+            Normalizer <float> Npfs     ( pfs     ) ;
+            printf("Spread Values(%ld): %e %e %e\n",index,Nspreads*Nspreads,Nspreads*Npfs,Npfs*Npfs);
+        }
+        inline void CalculateCorrelationNSub   (size_t index, size_t j=0) {
             std::vector <float> nsubs, pfs;
             nsubs.resize(Limit1); pfs.resize(Limit1);
-            for(size_t i=0;i<Limit1;i++){nsubs[i]=element1[i].nsub[0][index];pfs[i]=element1[i].Planar_Flow[0];}
+            for(size_t i=0;i<Limit1;i++){nsubs[i]=element1[i].nsub[j][index];pfs[i]=element1[i].Planar_Flow[j];}
             Normalizer <float> Nnsubs ( nsubs ) ;
             Normalizer <float> Npfs   ( pfs   ) ;
-            printf("Values(%ld): %e %e %e\n",index,Nnsubs*Nnsubs,Nnsubs*Npfs,Npfs*Npfs);
+            printf("Values(%ld,%ld): %e %e %e\n",index,j,Nnsubs*Nnsubs,Nnsubs*Npfs,Npfs*Npfs);
         }
-
+        inline void CalculateCorrelation () {
+            for(size_t j=0;j<3;j++){
+                CalculateCorrelationNSub(1,j);
+                CalculateCorrelationNSub(2,j);
+                CalculateCorrelationNSub(3,j);
+                CalculateCorrelationNSub(4,j);
+            }
+            CalculateCorrelationSpread(0);
+            CalculateCorrelationSpread(1);
+            CalculateCorrelationSpread(2);
+        }
         inline void Plot2D (size_t index=1) {
             double max=20;
             if(index==2){max=10;}
@@ -947,7 +983,6 @@ namespace Step2 {
                 C.SaveAs(&(outname[0]));
             }
         }
-
         inline void Plot_Masses () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -959,7 +994,18 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].filteredjetmass;}
             PlotHist("Masses",Masses1,Masses2,Masses3,Masses4);
         }
-
+        inline void Plot_Spread (size_t index=0) {
+            std::vector <float> Masses1; Masses1.resize(Limit1);
+            std::vector <float> Masses2; Masses2.resize(Limit2);
+            std::vector <float> Masses3; Masses3.resize(Limit3);
+            std::vector <float> Masses4; Masses4.resize(Limit4);
+            for(size_t i=0;i<Limit1;i++){Masses1[i]=element1[i].Spread[index];}
+            for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].Spread[index];}
+            for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].Spread[index];}
+            for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].Spread[index];}
+            char tmp[512]; sprintf(tmp,"Spread%ld",index);
+            PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
+        }
         inline void Plot_EFrac () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -971,7 +1017,6 @@ namespace Step2 {
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].frac_em;}
             PlotHist("EFrac",Masses1,Masses2,Masses3,Masses4);
         }
-
         inline void Plot_HFrac () {
             std::vector <float> Masses1; Masses1.resize(Limit1);
             std::vector <float> Masses2; Masses2.resize(Limit2);
@@ -1053,12 +1098,6 @@ namespace Step2 {
             for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].EFC[0][j];}
             for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].EFC[0][j];}
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].EFC[0][j];}
-            if(false){
-                for(size_t i=0;i<Limit1;i++){printf("DEBUG1: %e\n",element1[i].EFC[j]);}
-                for(size_t i=0;i<Limit2;i++){printf("DEBUG1: %e\n",element2[i].EFC[j]);}
-                for(size_t i=0;i<Limit3;i++){printf("DEBUG1: %e\n",element3[i].EFC[j]);}
-                for(size_t i=0;i<Limit4;i++){printf("DEBUG1: %e\n",element4[i].EFC[j]);}
-            }
             char tmp[512];
             sprintf(tmp,"ECorr%ld",j+1);
             PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
@@ -1125,15 +1164,12 @@ namespace Step2 {
         Limit3(reader3.size()) , Limit4(reader4.size()) ,
         element1(&(reader1(0,Limit1))) , element2(&(reader2(0,Limit2))) ,
         element3(&(reader3(0,Limit3))) , element4(&(reader4(0,Limit4))) {
-            Plot_Masses();Plot_EFrac();Plot_HFrac();Plot_NTracks();
-            Plot_ECorrDR();Plot_ECorr();Plot_nsub_ratio();Plot_nsub();
-            Plot_PlanarFlow();Plot_PlanarFlow1();Plot_PlanarFlow2();
-            Plot_Z_Pt();
-            Plot2D(1); Plot2D(2); Plot2D(3); Plot2D(4); Plot2D(5);
-            CalculateCorrelation(1);
-            CalculateCorrelation(2);
-            CalculateCorrelation(3);
-            CalculateCorrelation(4);
+            Plot_Masses     () ; Plot_EFrac       () ; Plot_HFrac       () ; Plot_NTracks () ;
+            Plot_ECorrDR    () ; Plot_ECorr       () ; Plot_nsub_ratio  () ; Plot_nsub    () ;
+            Plot_PlanarFlow () ; Plot_PlanarFlow1 () ; Plot_PlanarFlow2 () ; Plot_Z_Pt    () ;
+            Plot_Spread (0) ; Plot_Spread (1) ; Plot_Spread (2) ;
+            Plot2D      (1) ; Plot2D      (2) ; Plot2D      (3) ; Plot2D (4) ; Plot2D (5) ;
+            CalculateCorrelation();
         }
         ~PlotAll2(){}
     } ;
