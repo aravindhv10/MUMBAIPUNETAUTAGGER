@@ -792,11 +792,53 @@ namespace Step2 {
         }
     }
 
+    template <typename T> class Normalizer  {
+    private:
+        std::vector <T> values ;
+        T L2Norm2, L2Norm ;
+    public:
+    private:
+        inline T DotProduct (const Normalizer<T>&other) const {
+            T ret = 0 ;
+            if(values.size()!=other()){printf("U'r Retarded... sizes are different...\n");}
+            else {for(size_t i=0;i<values.size();i++){ret+=values[i]*other(i);}}
+            return ret;
+        }
+    public:
+        inline T        operator *  ( const  Normalizer <T> & other ) const { return DotProduct(other) ; }
+        inline T      & operator () ( size_t i                      )       { return values[i]         ; }
+        inline T        operator () ( size_t i                      ) const { return values[i]         ; }
+        inline size_t   operator () (                               ) const { return values.size()     ; }
+        Normalizer(const std::vector<T>&_values){
+            T mean=0;
+            for(size_t i=0;i<_values.size();i++){mean+=_values[i];}
+            mean/=(T)_values.size();
+            values.resize(_values.size());
+            for(size_t i=0;i<_values.size();i++){values[i]=_values[i]-mean;}
+            L2Norm2=0;
+            for(size_t i=0;i<values.size();i++){L2Norm2+=values[i]*values[i];}
+            L2Norm=sqrt(L2Norm2);
+            for(size_t i=0;i<values.size();i++){values[i]/=L2Norm;}
+        }
+        ~Normalizer(){}
+    } ;
+
+
+
     class PlotAll2 {
     private:
         CPPFileIO::FileArray <Step1::OutPutVariables> reader1 , reader2 , reader3 , reader4 ;
         size_t Limit1 , Limit2 , Limit3 , Limit4 ;
         Step1::OutPutVariables *element1 , *element2 , *element3 , *element4 ;
+
+        inline void CalculateCorrelation (size_t index=1) {
+            std::vector <float> nsubs, pfs;
+            nsubs.resize(Limit1); pfs.resize(Limit1);
+            for(size_t i=0;i<Limit1;i++){nsubs[i]=element1[i].nsub[index];pfs[i]=element1[i].Planar_Flow[0];}
+            Normalizer <float> Nnsubs ( nsubs ) ;
+            Normalizer <float> Npfs   ( pfs   ) ;
+            printf("Values(%ld): %e %e %e\n",index,Nnsubs*Nnsubs,Nnsubs*Npfs,Npfs*Npfs);
+        }
 
         inline void Plot2D (size_t index=1) {
             double max=20;
@@ -905,6 +947,10 @@ namespace Step2 {
             for(size_t i=0;i<Limit2;i++){Masses2[i]=element2[i].nsub[j];}
             for(size_t i=0;i<Limit3;i++){Masses3[i]=element3[i].nsub[j];}
             for(size_t i=0;i<Limit4;i++){Masses4[i]=element4[i].nsub[j];}
+
+            //Normalizer <float> check1(Masses1);
+            //Normalizer <float> check2(Masses2);
+            //printf("Values: %e %e %e\n",check1*check1,check1*check2,check2*check2);
             char tmp[512];
             sprintf(tmp,"NSub%ld",j+1);
             PlotHist(tmp,Masses1,Masses2,Masses3,Masses4);
@@ -1031,10 +1077,13 @@ namespace Step2 {
             Plot_PlanarFlow();Plot_PlanarFlow1();Plot_PlanarFlow2();
             Plot_Z_Pt();
             Plot2D(1); Plot2D(2); Plot2D(3); Plot2D(4); Plot2D(5);
+            CalculateCorrelation(1);
+            CalculateCorrelation(2);
+            CalculateCorrelation(3);
+            CalculateCorrelation(4);
         }
         ~PlotAll2(){}
     } ;
-
 
     class PlotAll {
     private:
